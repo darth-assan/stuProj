@@ -9,8 +9,8 @@ def main():
     
     args = parser.parse_args()
     
-    BASE_DIR = "/Users/darth/Dev/stuProj/data/original"
-    OUTPUT_DIR = "/Users/darth/Dev/stuProj/data/distances"
+    BASE_DIR = "G:/stuProj/data/original"
+    OUTPUT_DIR = "G:/stuProj/data/distances"
     
     if args.all:
         processor = DatasetProcessor(BASE_DIR, OUTPUT_DIR)

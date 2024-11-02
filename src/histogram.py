@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Directory paths
-DISTANCES_DIR = os.path.expanduser("~/dev/stuProj/data/distances")
+DISTANCES_DIR = os.path.expanduser("G:/stuProj/data/distances")
 
 def load_distances():
     # ... existing load_distances function remains the same ...
@@ -68,7 +68,7 @@ def plot_histograms_matplotlib(train_distances, test_distances, num_bins=50):
     plt.tight_layout()
     
     # Save the plot
-    output_dir = os.path.expanduser("~/dev/stuProj/results")
+    output_dir = os.path.expanduser("G:/stuProj/results")
     os.makedirs(output_dir, exist_ok=True)
     plt.savefig(os.path.join(output_dir, 'distance_histograms.png'), dpi=300, bbox_inches='tight')
     print(f"Histograms saved to: {os.path.join(output_dir, 'distance_histograms.png')}")
