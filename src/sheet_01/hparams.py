@@ -19,12 +19,12 @@ param_grid = {
 }
 
 # Parameters
-input_dim = 100               # Dimension of the input noise vector for the generator
-feature_dim = 16              # Adjusted base feature size for convolutional layers
+input_dim = 100              
+feature_dim = 16
 
 # Load data (replace with actual data loading and preprocessing steps)
 # Sample data for tensor_data, replace this with actual data loading
-tensor_data = torch.randn(1000, 49).float()  # Example: random data with 49 features
+tensor_data = torch.randn(1000, 49).float()  
 
 # Discriminator Model
 class Discriminator(nn.Module):
@@ -168,4 +168,15 @@ for generator_lr, discriminator_lr, batch_size, noise_std_dev, num_epochs in par
         }
     print(f"Avg D Loss: {avg_d_loss:.4f}, Avg G Loss: {avg_g_loss:.4f}")
 
-print(f"Best Parameters: {best_params}")
+def get_hyperparameters():
+    return {
+        "generator_lr": [0.0003, 0.0002, 0.0001],
+        "discriminator_lr": [0.0001, 0.00005, 0.0002],
+        "batch_size": [32, 64, 128],
+        "noise_std_dev": [0.01, 0.02, 0.03],
+        "num_epochs": [50, 100]
+    }
+
+if __name__ == "__main__":
+    best_params = tune_hyperparameters()
+    print(f"Best Hyperparameters: {best_params}")

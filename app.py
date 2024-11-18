@@ -4,7 +4,13 @@ from src.sheet_02.task_01 import SyntheticDataGenerator
 from src.sheet_02.task_02 import DatasetAnalyzer
 from src.sheet_01.processor import DataPreprocessor
 from src.sheet_01.histogram import DistanceHistogramGenerator
+from src.sheet_01.config import GANConfig
+from src.sheet_01.train import GANTrainer
+from src.sheet_01.ks_test import KSTestEvaluator
+# from src.sheet_01.hparams import get_hyperparameters
+
 from loguru import logger
+import pandas as pd
 import sys
 
 # Configure Loguru
@@ -33,13 +39,17 @@ def parse_args():
     )
     
     parser.add_argument('-s', '--start', type=str, required=True,
-                       choices=['distance', 'gan', 'oversample', 'analyze', 'histogram'],
+                       choices=['distance', 'oversample', 'analyze-1', 'analyze-2' ,'histogram', 'gan-generate', 'train', 'hparams'],
                        help="""Operation mode selection:
                        'distance': Analyze physical sensor readings (Sheet 1, Task 1)
                        'gan': Generate synthetic data using GAN (Sheet 1, Task 2)
                        'oversample': Generate synthetic data using oversampling
-                       'analyze': Analyze synthetic datasets
-                       'histogram': Generate histograms of distances(Sheet 1)""")
+                       'analyze1': Analyze synthetic datasets (Sheet 1 - K-S Test)
+                       'analyze2': Analyze synthetic datasets (Sheet 2 - CDF/CCDF)
+                       'histogram': Generate histograms of distances(Sheet 1)
+                       'gan-generate': Generate synthetic data using GAN (Sheet 1, Task 3)
+                       'train': Train GAN model (Sheet 1, Task 3)
+                       'hparams': Get hyperparameters for the GAN model'""")
 
     # Additional arguments based on mode
     parser.add_argument('--dataset', type=str,
@@ -65,10 +75,20 @@ def parse_args():
                               str(DATA_PATH / 'oversampling' / 'synthetic_data-HU.csv')],
                        help="Paths to synthetic datasets (for analysis)")
 
+    # GAN specific arguments
+    # parser.add_argument('--ks-output', type=str, default=None,
+    #                    help='custom output path for KS test results')
+    # parser.add_argument('--generate-output', type=str, default=None,
+    #                    help='custom output path for KS test results')
+
     return parser.parse_args()
 
 def main():
     args = parse_args()
+    config = GANConfig()
+    
+    # Get hyperparameters
+    # hyperparameters = get_hyperparameters()
 
     try:
         if args.start == 'distance':
@@ -90,11 +110,6 @@ def main():
             output_file = output / 'histogram.png'
             # Let exceptions propagate up
             generator.generate(output_file)
-
-        elif args.start == 'gan':
-            logger.info("Starting GAN-based data generation...")
-            generator = GANGenerator()
-            generator.generate_data(args.dataset, args.output)
             
         elif args.start == 'oversample':
             logger.info("Starting synthetic data generation using oversampling...")
@@ -104,7 +119,7 @@ def main():
             synthetic_data = generator.generate_samples(args.percentage, args.k)
             generator.save_synthetic_data(synthetic_data, args.output)
             
-        elif args.start == 'analyze':
+        elif args.start == 'analyze-2':
             logger.info("Starting synthetic data analysis...")
             analyzer = DatasetAnalyzer(
                 real_data_path=args.dataset,
@@ -112,6 +127,50 @@ def main():
                 output_path=args.output
             )
             analyzer.analyze_all_columns()
+
+        elif args.start == 'train':
+            logger.info("Starting GAN model training...")
+            trainer = GANTrainer(config)
+            trainer.train()
+
+        elif args.start == 'gan-generate':
+            logger.info("Generating synthetic data using GAN...")
+            evaluator = KSTestEvaluator(config)
+            generator = evaluator.load_generator()
+            synthetic_data = evaluator.generate_synthetic_data(generator)
+            output_path = Path(config.synthetic_data_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            pd.DataFrame(synthetic_data, columns=[f'feature_{i}' for i in range(synthetic_data.shape[1])]).to_csv(
+                output_path, index=False)
+            logger.info(f"Synthetic data saved to {output_path}")
+        
+
+        elif args.start == 'analyze-1':
+            logger.info("Evaluating synthetic data quality...")
+            evaluator = KSTestEvaluator(config)
+            results = evaluator.evaluate()
+            logger.info("Evaluation completed!")
+
+            summary_path = Path(config.ks_summary_path)
+            with open(summary_path, 'w') as f:
+                f.write("K-S Test Results:\n" + '=' * 20 + '\n')
+                for test_name, df in results.items():
+                    passing = df['passes'].sum()
+                    total = len(df)
+                    f.write(f"K-S Test Results ({test_name}):\n")
+                    f.write(f"Passing sensors: {passing}\n")
+                    f.write(df.to_string(index=False) + "\n\n")
+                
+                f.write("Summary:\n")
+                for test_name, df in results.items():
+                    passing = df['passes'].sum()
+                    total = len(df)
+                    summary_line = f"{test_name}: {passing}/{total} sensors passed the KS test ({(passing/total*100):.1f}%)\n"
+                    f.write(summary_line)
+
+        # elif args.start == 'hparams':
+        #     logger.info("Hyperparameters for the GAN model:")
+        #     logger.info(hyperparameters)
             
         logger.info(f"Operation '{args.start}' completed successfully")
         
