@@ -4,14 +4,14 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from models import Generator, Discriminator
+from PA_models import Generator, Discriminator
 import os
 
 # Constants
 TRAIN_SET_1_PATH = '/Users/darth/Dev/stuProj/data/GAN/train1_clean.csv'
 TRAIN_SET_2_PATH = '/Users/darth/Dev/stuProj/data/GAN/train4_clean.csv'
-BATCH_SIZE = 16
-NUM_EPOCHS = 2
+BATCH_SIZE = 32
+NUM_EPOCHS = 50
 LEARNING_RATE_G = 0.0002
 LEARNING_RATE_D = 0.0001
 MODEL_SAVE_PATH = 'saved_models'

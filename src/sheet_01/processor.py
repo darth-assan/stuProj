@@ -3,6 +3,12 @@ import os
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 from typing import List, Dict, Optional
+from pathlib import Path
+
+# Define paths
+BASE_DIR = Path(__file__).parent.parent.parent
+DATA_PATH = BASE_DIR / 'data' / 'original'
+OUTPUT_PATH = BASE_DIR / 'distances'
 
 class DataPreprocessor:
     def __init__(self, base_dir: str, output_dir: str):
@@ -217,14 +223,3 @@ class DataPreprocessor:
                     self.process_file(file_path, version)
             else:
                 self.process_file(file_path, version)
-
-if __name__ == "__main__":
-    base_dir = "/Users/darth/Dev/stuProj/data/Original"  # Replace with actual base directory
-    output_dir = "/Users/darth/Dev/stuProj/data/Processed"  # Replace with actual output directory
-    
-    preprocessor = DataPreprocessor(base_dir, output_dir)
-    
-    # Process each dataset version
-    for version in ['hai-21.03', 'hai-22.04','haiend-23.05']:
-        print(f"\nProcessing {version} dataset...")
-        preprocessor.process_directory(version)
