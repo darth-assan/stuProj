@@ -44,7 +44,7 @@ def parse_args():
     
     parser.add_argument('-s', '--start', type=str, required=True,
                         choices=['distance', 'oversample', 'analyze-1', 'analyze-2', 'histogram', 
-                                 'gan-generate', 'train', 'hparams'],
+                                 'gan-generate', 'train'],
                         help="""Operation mode selection:
                         'distance': Analyze physical sensor readings (Sheet 1, Task 1)
                         'gan': Generate synthetic data using GAN (Sheet 1, Task 2)
@@ -146,8 +146,7 @@ def main():
             evaluator = KSTestEvaluator(config)
             generator = evaluator.load_generator()
             synthetic_data = evaluator.generate_synthetic_data(generator)
-            output_path = Path(config.synthetic_data_path)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path = Path(config.synthetic_data_path) if not args.output else Path(args.output)
             pd.DataFrame(synthetic_data, columns=[f'feature_{i}' for i in range(synthetic_data.shape[1])]).to_csv(
                 output_path, index=False)
             logger.info(f"Synthetic data saved to {output_path}")

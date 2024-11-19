@@ -5,8 +5,8 @@ import os
 # Define paths
 BASE_DIR = Path(__file__).parent.parent.parent
 DATA_PATH = BASE_DIR / 'data' / 'gan'
-OUTPUT_PATH = BASE_DIR / 'results'
-os.makedirs(OUTPUT_PATH, exist_ok=True)
+os.makedirs(BASE_DIR / 'results', exist_ok=True)
+os.makedirs(BASE_DIR / 'saved_model', exist_ok=True)
 
 @dataclass
 class GANConfig:
@@ -30,7 +30,7 @@ class GANConfig:
     train_set_2_path: Path = DATA_PATH / 'train4_clean.csv'
     model_save_path: Path = BASE_DIR / 'saved_model'
     synthetic_data_path: Path = DATA_PATH / 'synthetic_data.csv'
-    ks_summary_path: Path = OUTPUT_PATH / 'ks_summary.csv'
+    ks_summary_path: Path = BASE_DIR/ 'results' / 'ks_summary.csv'
 
     # Check if files exist
     files_to_check = [
