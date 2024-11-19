@@ -18,7 +18,7 @@ logger.add(sys.stdout, level="INFO", filter=lambda record: record["level"].name 
 
 class DatasetAnalyzer:
     def __init__(self, real_data_path: Union[str, Path], synthetic_data_paths: List[Union[str, Path]],
-                 output_path: Union[str, Path] = Path("../plots")):
+                 output_path: Union[str, Path]):
         """
         Initialize analyzer with paths to real and synthetic datasets
         

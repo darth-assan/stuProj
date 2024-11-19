@@ -5,11 +5,6 @@ import numpy as np
 from typing import List, Dict, Optional
 from pathlib import Path
 
-# Define paths
-BASE_DIR = Path(__file__).parent.parent.parent
-DATA_PATH = BASE_DIR / 'data' / 'original'
-OUTPUT_PATH = BASE_DIR / 'distances'
-
 class DataPreprocessor:
     def __init__(self, base_dir: str, output_dir: str):
         """
@@ -21,7 +16,6 @@ class DataPreprocessor:
         """
         self.base_dir = base_dir
         self.output_dir = output_dir
-        # Main output directory is created if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
         
         # Dataset version specific configurations
@@ -202,8 +196,7 @@ class DataPreprocessor:
         """
         version_dir = os.path.join(self.base_dir, version)
         if not os.path.exists(version_dir):
-            print(f"Directory not found: {version_dir}")
-            return
+            raise FileNotFoundError(f"Directory not found: {version_dir}")
 
         for filename in os.listdir(version_dir):
             if not filename.endswith('.csv'):

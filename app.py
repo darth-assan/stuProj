@@ -27,7 +27,7 @@ def parse_args():
         description="""
         Industrial Process Data Analysis Toolbox
         ======================================
-        This toolbox provides various functionalities for generating and analyzing ICS synthetically genrated data:
+        This toolbox provides various functionalities for generating and analyzing ICS synthetically generated data:
         1. Physical Readings Analysis (from Sheet 1)
         2. GAN-based Data Generation (from Sheet 1)
         3. Oversampling method for Synthetic Data Generation (from Sheet 2)
@@ -39,62 +39,62 @@ def parse_args():
     )
     
     parser.add_argument('-s', '--start', type=str, required=True,
-                       choices=['distance', 'oversample', 'analyze-1', 'analyze-2' ,'histogram', 'gan-generate', 'train', 'hparams'],
-                       help="""Operation mode selection:
-                       'distance': Analyze physical sensor readings (Sheet 1, Task 1)
-                       'gan': Generate synthetic data using GAN (Sheet 1, Task 2)
-                       'oversample': Generate synthetic data using oversampling
-                       'analyze1': Analyze synthetic datasets (Sheet 1 - K-S Test)
-                       'analyze2': Analyze synthetic datasets (Sheet 2 - CDF/CCDF)
-                       'histogram': Generate histograms of distances(Sheet 1)
-                       'gan-generate': Generate synthetic data using GAN (Sheet 1, Task 3)
-                       'train': Train GAN model (Sheet 1, Task 3)
-                       'hparams': Get hyperparameters for the GAN model'""")
-
-    # Additional arguments based on mode
+                        choices=['distance', 'oversample', 'analyze-1', 'analyze-2', 'histogram', 
+                                 'gan-generate', 'train', 'hparams'],
+                        help="""Operation mode selection:
+                        'distance': Analyze physical sensor readings (Sheet 1, Task 1)
+                        'gan': Generate synthetic data using GAN (Sheet 1, Task 2)
+                        'oversample': Generate synthetic data using oversampling
+                        'analyze1': Analyze synthetic datasets (Sheet 1 - K-S Test)
+                        'analyze2': Analyze synthetic datasets (Sheet 2 - CDF/CCDF)
+                        'histogram': Generate histograms of distances(Sheet 1)
+                        'gan-generate': Generate synthetic data using GAN (Sheet 1, Task 3)
+                        'train': Train GAN model (Sheet 1, Task 3)
+                        'hparams': Get hyperparameters for the GAN model""")
+    
+    # General arguments
     parser.add_argument('--dataset', type=str,
-                       default=str(DATA_PATH / 'oversampling' / 'train_4_task_02.csv'),
-                       help="Path to input dataset (CSV)")
+                        default=str(DATA_PATH / 'oversampling' / 'train_4_task_02.csv'),
+                        help="Path to input dataset (CSV)")
     parser.add_argument('--output', type=str,
-                       default=str(DATA_PATH / 'oversampling' / 'synthetic_data.csv'),
-                       help="Path to output file/directory")
-    
-    # Oversampling specific arguments
-    parser.add_argument('--percentage', type=float, default=100,
-                       help="Percentage of samples to generate (for oversampling)")
-    parser.add_argument('--k', type=int, choices=[2, 5], default=2,
-                       help="Number of nearest neighbors (for oversampling)")
-    parser.add_argument('--normalization', choices=['min_max', 'z_score'], 
-                       default='min_max',
-                       help="Normalization method (for oversampling)")
-    
-    # Analysis specific arguments
-    parser.add_argument('--synthetic-data', type=str, nargs='+',
-                       default=[str(DATA_PATH / 'oversampling' / 'k2_synthetic_data.csv'),
-                              str(DATA_PATH / 'oversampling' / 'k5_synthetic_data.csv'),
-                              str(DATA_PATH / 'oversampling' / 'synthetic_data-HU.csv')],
-                       help="Paths to synthetic datasets (for analysis)")
+                        default=str(DATA_PATH / 'oversampling' / 'synthetic_data.csv'),
+                        help="Path to output file/directory")
 
-    # GAN specific arguments
-    # parser.add_argument('--ks-output', type=str, default=None,
-    #                    help='custom output path for KS test results')
-    # parser.add_argument('--generate-output', type=str, default=None,
-    #                    help='custom output path for KS test results')
+    # Oversampling-specific arguments
+    oversample_group = parser.add_argument_group('Oversampling')
+    oversample_group.add_argument('--percentage', type=float, default=100,
+                                  help="Percentage of samples to generate (for oversampling)")
+    oversample_group.add_argument('--k', type=int, choices=[2, 5], default=2,
+                                  help="Number of nearest neighbors (for oversampling)")
+    oversample_group.add_argument('--normalization', choices=['min_max', 'z_score'], 
+                                  default='min_max',
+                                  help="Normalization method (for oversampling)")
 
-    return parser.parse_args()
+    # Analysis-specific arguments
+    analysis_group = parser.add_argument_group('Analysis')
+    analysis_group.add_argument('--synthetic-data', type=str, nargs='+',
+                                default=[str(DATA_PATH / 'oversampling' / 'k2_synthetic_data.csv'),
+                                         str(DATA_PATH / 'oversampling' / 'k5_synthetic_data.csv'),
+                                         str(DATA_PATH / 'oversampling' / 'synthetic_data-HU.csv')],
+                                help="Paths to synthetic datasets (for analysis)")
+
+    args = parser.parse_args()
+
+    # Validate arguments based on the mode
+    if args.start != 'oversample' and any(arg in sys.argv for arg in ['--k', '--percentage', '--normalization']):
+        parser.error("--k, --percentage, and --normalization are only valid for 'oversample' mode")
+
+    return args
 
 def main():
     args = parse_args()
     config = GANConfig()
-    
-    # Get hyperparameters
-    # hyperparameters = get_hyperparameters()
 
     try:
         if args.start == 'distance':
             logger.info("Starting physical readings distance calculation...")
             base_dir = DATA_PATH / 'original'  
-            output_dir = BASE_DIR / 'distances' 
+            output_dir = BASE_DIR / 'distances' if not args.output else args.output
             distance = DataPreprocessor(base_dir, output_dir)
             # Process each dataset version
             for version in ['hai-21.03', 'hai-22.04','haiend-23.05']:
