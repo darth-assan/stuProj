@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 from pathlib import Path
+import os
 
 # Define paths
 BASE_DIR = Path(__file__).parent.parent.parent
 DATA_PATH = BASE_DIR / 'data' / 'gan'
 OUTPUT_PATH = BASE_DIR / 'results'
+os.makedirs(OUTPUT_PATH, exist_ok=True)
 
 @dataclass
 class GANConfig:
@@ -29,3 +31,14 @@ class GANConfig:
     model_save_path: Path = BASE_DIR / 'saved_model'
     synthetic_data_path: Path = DATA_PATH / 'synthetic_data.csv'
     ks_summary_path: Path = OUTPUT_PATH / 'ks_summary.csv'
+
+    # Check if files exist
+    files_to_check = [
+        train_set_1_path,
+        train_set_2_path
+    ]
+
+    def __post_init__(self):
+        for file_path in self.files_to_check:
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"Error: File '{file_path}' does not exist.")

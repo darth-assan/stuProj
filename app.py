@@ -23,6 +23,9 @@ BASE_DIR = Path(__file__).parent
 DATA_PATH = BASE_DIR / 'data'
 OUTPUT_PATH = BASE_DIR
 
+# Helper functions
+check_file = DataProcessor.check_file_exists
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="""
@@ -54,26 +57,26 @@ def parse_args():
                         'hparams': Get hyperparameters for the GAN model""")
     
     # General arguments
-    parser.add_argument('--dataset', type=str,
+    parser.add_argument('-d', '--dataset', type=str,
                         default=None,
                         help="Path to input dataset (CSV)")
-    parser.add_argument('--output', type=str,
+    parser.add_argument('-o', '--output', type=str,
                         default=None,
                         help="Path to output file/directory")
 
     # Oversampling-specific arguments
     oversample_group = parser.add_argument_group('Oversampling')
-    oversample_group.add_argument('--percentage', type=float, default=100,
+    oversample_group.add_argument('-p', '--percentage', type=float, default=100,
                                   help="Percentage of samples to generate (for oversampling)")
-    oversample_group.add_argument('--k', type=int, choices=[2, 5], default=2,
+    oversample_group.add_argument('-k','--k', type=int, choices=[2, 5], default=2,
                                   help="Number of nearest neighbors (for oversampling)")
-    oversample_group.add_argument('--normalization', choices=['min_max', 'z_score'], 
+    oversample_group.add_argument('-n', '--normalization', choices=['min_max', 'z_score'], 
                                   default='min_max',
                                   help="Normalization method (for oversampling)")
 
     # Analysis-specific arguments
     analysis_group = parser.add_argument_group('Analysis')
-    analysis_group.add_argument('--synthetic-data', type=str, nargs='+',
+    analysis_group.add_argument('-sd', '--synthetic-data', type=str, nargs='+',
                                 default=[str(DATA_PATH / 'oversampling' / 'k2_synthetic_data.csv'),
                                          str(DATA_PATH / 'oversampling' / 'k5_synthetic_data.csv'),
                                          str(DATA_PATH / 'oversampling' / 'synthetic_data-HU.csv')],
@@ -106,16 +109,13 @@ def main():
             logger.info("Starting distance histogram generation...")
             generator = DistanceHistogramGenerator()
             output = OUTPUT_PATH / 'plots'
-            # Create plots directory if it doesn't exist
             output.mkdir(parents=True, exist_ok=True)
             output_file = output / 'histogram.png'
-            # Let exceptions propagate up
             generator.generate(output_file)
             
         elif args.start == 'oversample':
             logger.info("Starting synthetic data generation using oversampling...")
-            check_file = DataProcessor.check_file_exists
-            dataset = DATA_PATH / 'oversampling' / 'train_4_task_02.csv'  
+            dataset = DATA_PATH / 'oversampling' / 'train_4_task_02.csv' if not args.dataset else args.dataset  
             check_file(dataset)
             output = DATA_PATH / 'oversampling' / 'synthetic_data_os.csv' if not args.output else args.output
             generator = SyntheticDataGenerator(args.normalization)
@@ -126,10 +126,13 @@ def main():
             
         elif args.start == 'analyze-2':
             logger.info("Starting synthetic data analysis...")
+            dataset = DATA_PATH / 'oversampling' / 'train_4_task_02.csv' if not args.dataset else args.dataset
+            check_file(dataset)
+            output = OUTPUT_PATH / 'plots' if not args.output else args.output
             analyzer = DatasetAnalyzer(
-                real_data_path=args.dataset,
-                synthetic_data_paths=args.synthetic_data,
-                output_path=args.output
+                real_data_path = dataset,
+                synthetic_data_paths = args.synthetic_data,
+                output_path = output
             )
             analyzer.analyze_all_columns()
 
@@ -151,10 +154,11 @@ def main():
         
 
         elif args.start == 'analyze-1':
-            logger.info("Evaluating synthetic data quality...")
+            logger.info("Evaluating synthetic data using K-S...")
             evaluator = KSTestEvaluator(config)
             results = evaluator.evaluate()
             logger.info("Evaluation completed!")
+            print(results)
 
             summary_path = Path(config.ks_summary_path)
             with open(summary_path, 'w') as f:
@@ -172,10 +176,6 @@ def main():
                     total = len(df)
                     summary_line = f"{test_name}: {passing}/{total} sensors passed the KS test ({(passing/total*100):.1f}%)\n"
                     f.write(summary_line)
-
-        # elif args.start == 'hparams':
-        #     logger.info("Hyperparameters for the GAN model:")
-        #     logger.info(hyperparameters)
             
         logger.info(f"Operation '{args.start}' completed successfully")
         

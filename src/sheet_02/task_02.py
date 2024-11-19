@@ -7,11 +7,6 @@ from typing import List, Dict, Tuple, Optional, Union
 from loguru import logger
 import sys
 
-# Define paths
-BASE_DIR = Path(__file__).parent.parent.parent
-DATA_PATH = BASE_DIR / 'data' / 'oversampling'
-OUTPUT_PATH = BASE_DIR / 'plots'
-
 # Configure Loguru
 logger.remove()
 logger.add(sys.stdout, level="INFO", filter=lambda record: record["level"].name == "INFO")
