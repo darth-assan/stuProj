@@ -7,6 +7,7 @@ from src.sheet_01.histogram import DistanceHistogramGenerator
 from src.sheet_01.config import GANConfig
 from src.sheet_01.train import GANTrainer
 from src.sheet_01.ks_test import KSTestEvaluator
+from src.sheet_01.data_utils import DataProcessor
 # from src.sheet_01.hparams import get_hyperparameters
 
 from loguru import logger
@@ -54,10 +55,10 @@ def parse_args():
     
     # General arguments
     parser.add_argument('--dataset', type=str,
-                        default=str(DATA_PATH / 'oversampling' / 'train_4_task_02.csv'),
+                        default=None,
                         help="Path to input dataset (CSV)")
     parser.add_argument('--output', type=str,
-                        default=str(DATA_PATH / 'oversampling' / 'synthetic_data.csv'),
+                        default=None,
                         help="Path to output file/directory")
 
     # Oversampling-specific arguments
@@ -113,11 +114,15 @@ def main():
             
         elif args.start == 'oversample':
             logger.info("Starting synthetic data generation using oversampling...")
+            check_file = DataProcessor.check_file_exists
+            dataset = DATA_PATH / 'oversampling' / 'train_4_task_02.csv'  
+            check_file(dataset)
+            output = DATA_PATH / 'oversampling' / 'synthetic_data_os.csv' if not args.output else args.output
             generator = SyntheticDataGenerator(args.normalization)
-            generator.load_dataset(args.dataset)
+            generator.load_dataset(dataset)
             generator.normalize_data()
             synthetic_data = generator.generate_samples(args.percentage, args.k)
-            generator.save_synthetic_data(synthetic_data, args.output)
+            generator.save_synthetic_data(synthetic_data, output)
             
         elif args.start == 'analyze-2':
             logger.info("Starting synthetic data analysis...")

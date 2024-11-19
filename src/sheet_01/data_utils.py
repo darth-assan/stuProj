@@ -4,6 +4,8 @@ from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import DataLoader, TensorDataset
 from typing import Tuple, Optional
 from .config import GANConfig
+import os
+import sys
 
 class DataProcessor:
     def __init__(self, config: GANConfig):
@@ -24,3 +26,15 @@ class DataProcessor:
     def create_dataloader(self, data: torch.Tensor) -> DataLoader:
         dataset = TensorDataset(data)
         return DataLoader(dataset, batch_size=self.config.batch_size, shuffle=True)
+
+    def check_directory_exists(directory: str):
+        if not os.path.isdir(directory):
+            error_message = f"Error: Directory '{directory}' does not exist."
+            print(error_message, file=sys.stderr)
+            sys.exit(1)
+
+    def check_file_exists(file_path: str):
+        if not os.path.isfile(file_path):
+            error_message = f"Error: File '{file_path}' does not exist."
+            print(error_message, file=sys.stderr)
+            sys.exit(1)
