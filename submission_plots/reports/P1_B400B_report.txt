@@ -1,0 +1,22 @@
+Analysis Summary for P1_B400B
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 1.3028
+Synthetic 1 Entropy: 1.3040
+Synthetic 2 Entropy: 1.3068
+Synthetic 3 Entropy: 1.3502
+
+MinMax Analysis:
+Thresholds: -1566.3991 to 4775.4664
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -445.5525 to 349.7098
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 48.95%
+
+Steadytime Analysis: Not applicable (>50 distinct values)

@@ -1,0 +1,26 @@
+Analysis Summary for P1_PCV02Z
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 1.2269
+Synthetic 1 Entropy: 1.4097
+Synthetic 2 Entropy: 1.4993
+Synthetic 3 Entropy: 1.9763
+
+MinMax Analysis:
+Thresholds: 12.4222 to 12.5442
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -0.0420 to 0.0267
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 17.92%
+
+Steadytime Analysis:
+Thresholds: 179.5000 to 538.5000
+Synthetic 1 Violation Rate: 100.00%
+Synthetic 2 Violation Rate: 100.00%
+Synthetic 3 Violation Rate: 100.00%

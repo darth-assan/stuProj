@@ -1,0 +1,22 @@
+Analysis Summary for P1_PIT01
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 3.1045
+Synthetic 1 Entropy: 3.1059
+Synthetic 2 Entropy: 3.1044
+Synthetic 3 Entropy: 4.1102
+
+MinMax Analysis:
+Thresholds: -0.2142 to 2.8558
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -0.7549 to 0.5314
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Steadytime Analysis: Not applicable (>50 distinct values)

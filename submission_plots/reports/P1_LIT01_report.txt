@@ -1,0 +1,22 @@
+Analysis Summary for P1_LIT01
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 3.7314
+Synthetic 1 Entropy: 3.7317
+Synthetic 2 Entropy: 3.7311
+Synthetic 3 Entropy: 3.6336
+
+MinMax Analysis:
+Thresholds: 295.6451 to 615.9438
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -10.2234 to 5.3673
+Synthetic 1 Violation Rate: 0.03%
+Synthetic 2 Violation Rate: 0.15%
+Synthetic 3 Violation Rate: 78.44%
+
+Steadytime Analysis: Not applicable (>50 distinct values)

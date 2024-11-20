@@ -1,0 +1,22 @@
+Analysis Summary for P1_B3004
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 2.3555
+Synthetic 1 Entropy: 2.3567
+Synthetic 2 Entropy: 2.3601
+Synthetic 3 Entropy: 2.4333
+
+MinMax Analysis:
+Thresholds: 340.5854 to 546.9512
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -17.0593 to 10.7602
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.01%
+Synthetic 3 Violation Rate: 66.89%
+
+Steadytime Analysis: Not applicable (>50 distinct values)

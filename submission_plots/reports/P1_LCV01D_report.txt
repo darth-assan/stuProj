@@ -1,0 +1,22 @@
+Analysis Summary for P1_LCV01D
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 3.5044
+Synthetic 1 Entropy: 3.5042
+Synthetic 2 Entropy: 3.5027
+Synthetic 3 Entropy: 3.8842
+
+MinMax Analysis:
+Thresholds: -15.1515 to 47.6278
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -3.0137 to 2.1310
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.05%
+Synthetic 3 Violation Rate: 44.44%
+
+Steadytime Analysis: Not applicable (>50 distinct values)

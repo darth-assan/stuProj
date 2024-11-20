@@ -20,7 +20,7 @@ param_grid = {
 
 # Parameters
 input_dim = 100              
-feature_dim = 16
+feature_dim = 32
 
 # Load data (replace with actual data loading and preprocessing steps)
 # Sample data for tensor_data, replace this with actual data loading

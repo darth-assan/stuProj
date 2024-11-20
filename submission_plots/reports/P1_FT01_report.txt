@@ -1,0 +1,22 @@
+Analysis Summary for P1_FT01
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 2.8489
+Synthetic 1 Entropy: 2.8553
+Synthetic 2 Entropy: 2.8573
+Synthetic 3 Entropy: 3.9931
+
+MinMax Analysis:
+Thresholds: -81.6917 to 246.7536
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -51.1170 to 37.8609
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.05%
+
+Steadytime Analysis: Not applicable (>50 distinct values)

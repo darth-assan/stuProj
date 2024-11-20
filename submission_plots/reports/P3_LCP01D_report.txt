@@ -1,0 +1,22 @@
+Analysis Summary for P3_LCP01D
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 2.8374
+Synthetic 1 Entropy: 2.8388
+Synthetic 2 Entropy: 2.8378
+Synthetic 3 Entropy: 3.1089
+
+MinMax Analysis:
+Thresholds: -6912.0000 to 20736.0000
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -1396.0000 to 1052.0000
+Synthetic 1 Violation Rate: 0.90%
+Synthetic 2 Violation Rate: 2.67%
+Synthetic 3 Violation Rate: 76.77%
+
+Steadytime Analysis: Not applicable (>50 distinct values)

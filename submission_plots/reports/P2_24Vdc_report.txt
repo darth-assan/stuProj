@@ -1,0 +1,22 @@
+Analysis Summary for P2_24Vdc
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 3.1417
+Synthetic 1 Entropy: 3.6024
+Synthetic 2 Entropy: 3.8381
+Synthetic 3 Entropy: 4.1486
+
+MinMax Analysis:
+Thresholds: 28.0034 to 28.0642
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -0.0386 to 0.0294
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Steadytime Analysis: Not applicable (>50 distinct values)

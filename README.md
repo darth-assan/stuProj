@@ -1,92 +1,52 @@
-# Sheet 01 - Group 5
+## Sheet 02 submission data links
+#### Task 01 synthetic data
+- [k2_synthetic_data](https://www.b-tu.de/owncloud/s/SHK8BZwKqnPKmZ2)
+- [k5_synthetic_data](https://www.b-tu.de/owncloud/s/BzWxAb7wCacfzYx)
+#### Task 02 plots
+- [plots](https://www.b-tu.de/owncloud/s/Wn4ipAY9ewx367w)
+#### Other required data
+- [gan_synthetic_data](https://www.b-tu.de/owncloud/s/kK6fyDrtAereLzg)
+- [original_data_for_gan_training](https://www.b-tu.de/owncloud/s/SWR7WD628GC4dK3)
 
-## Task 01 
-
-This project is designed to process HAI datasets, calculate Euclidean distances, and generate histograms for visual analysis. The project is organized into separate modules for processing datasets and generating histograms, providing a clean and maintainable codebase. Also includes the implementation of a GAN and evaluation of synthetic data.
+> Task 03 is implemented in `app.py`
 
 ## Project Structure
+```
+project_root/
+├── data/
+│   ├── gan/ ...
+│   ├── original/...
+│   └── oversampling/
+│       ├── k2_synthetic_data.csv
+│       ├── k5_synthetic_data.csv
+│       ├── train_4_task_02.csv
+│       └── synthetic_data-HU.csv
+├── app.py
+└── src/
+    ├── sheet_01/ ...
+    └── sheet_02/
+        ├── __init__.py
+        ├── task_02.py
+        └── task_01.py
+```
 
-- `src/`
-  - `main.py`: The main entry point for the project, handling command-line arguments.
-  - `processor.py`: Contains the `DataProcessor` class for processing datasets and calculating distances.
-  - `histogram.py`: Contains functions to load distances and generate histograms using matplotlib.
-  - `models.py`: Contains the GAN model
-  - `train.py`: Trains the model using the selected files from two distriburions from different versions of the Dataset.
-  - `ks-test.py`: Computes the K-S statistic for the comparison of the various subsets
-  - `hparams.py`: Hyperparameter tuning to get the best parameters to use for training the model.
+>The solution for **Sheet 2** which is submitted for assessment is limited to the files within `sheet_02` directory. However here is complete [[source code]](https://github.com/darth-assan/stuProj.git)
 
 ## Requirements
-
-- Python 3.7+
-- pandas
-- numpy
-- scikit-learn
-- matplotlib
-- scipy
-- torch
-
-You can install the required packages using pip:
-
+Install the required packages using pip:
 ```bash
-pip install pandas numpy scikit-learn matplotlib torch scipy
+pip install -r requirements.txt
 ```
+The datasets within the `data/oversampling` is required for the demonstration and should be populated as is. If files are saved at different locations, they should be configured respectively. **These datasets are submitted with the source code.**
 
 
 ## Usage
+Lunch the toolbox in a specific mode
+```
+python app.py -s {mode}
+```
 
-The project can be run with different command-line options to either process datasets or generate histograms.
-
-### Command-Line Options
-
-- `--all`: Process all datasets and calculate Euclidean distances.
-- `--histogram`: Generate histogram plots for the calculated distances.
-- `--train`: Run the training script.
-- `--evaluate`: First generate and save the Synthetic data, then Run the ks-test script for calculating the Kolmogorov-Smirnov (K-S) statistic.
-- `--hparams`: Get the best parameters to use for training the model.
-
-### Example Commands
-
-1. **Process all datasets:**
-
-   ```bash
-   python src/main.py --all
-   ```
-
-   This command will process all datasets in the specified base directory, calculate Euclidean distances, and save them to the output directory.
-
-2. **Generate histograms:**
-
-   ```bash
-   python src/main.py --histogram
-   ```
-
-   This command will load the calculated distances and generate histograms, saving the plots to the results directory.
-
-## Configuration
-
-- **Base Directory**: The directory containing the original datasets. Update the `BASE_DIR` variable in `main.py` to point to your dataset location.
-- **Output Directory**: The directory where the calculated distances will be saved. Update the `OUTPUT_DIR` variable in `main.py` to your desired output location.
-
-## Project Setup
-
-1. Clone the repository:
-
-   ```bash
-   git clone <repository-url>
-   cd <repository-directory>
-   ```
-
-2. Install the required packages:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. The directory structure for data should be processed as follows
-- data
-   - GAN/ _-> contains the two train dataset for training the GAN_
-   - Original/ _-> The original dataset. can be obtained from ![[https://github.com/icsdataset/hai#hai-dataset]]_
-   - Processed/ _-> Contains the preprocessed data and the distances of each dataset from the respective distributions_
-   - Results/ _-> Contain results such as the histogram_
-
-4. Run the project using the command-line options described above.
+Read the help manual for detailed guidelines
+```
+python app.py -h
+```

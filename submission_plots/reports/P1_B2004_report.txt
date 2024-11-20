@@ -1,0 +1,22 @@
+Analysis Summary for P1_B2004
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 1.9268
+Synthetic 1 Entropy: 1.9275
+Synthetic 2 Entropy: 1.9268
+Synthetic 3 Entropy: 2.3996
+
+MinMax Analysis:
+Thresholds: 0.0409 to 0.2356
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -0.0106 to 0.0081
+Synthetic 1 Violation Rate: 0.04%
+Synthetic 2 Violation Rate: 0.02%
+Synthetic 3 Violation Rate: 68.59%
+
+Steadytime Analysis: Not applicable (>50 distinct values)

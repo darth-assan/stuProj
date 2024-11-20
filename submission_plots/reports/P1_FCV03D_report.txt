@@ -1,0 +1,22 @@
+Analysis Summary for P1_FCV03D
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 4.0826
+Synthetic 1 Entropy: 4.0843
+Synthetic 2 Entropy: 4.0826
+Synthetic 3 Entropy: 4.1115
+
+MinMax Analysis:
+Thresholds: 36.9451 to 62.3774
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -3.2033 to 2.1586
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 33.61%
+
+Steadytime Analysis: Not applicable (>50 distinct values)

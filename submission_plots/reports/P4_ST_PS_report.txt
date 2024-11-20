@@ -1,0 +1,26 @@
+Analysis Summary for P4_ST_PS
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 1.2106
+Synthetic 1 Entropy: 1.2118
+Synthetic 2 Entropy: 1.2139
+Synthetic 3 Entropy: 1.3605
+
+MinMax Analysis:
+Thresholds: -10.2894 to 30.8682
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -37.7194 to 23.9917
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Steadytime Analysis:
+Thresholds: 21393.5000 to 64180.5000
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 100.00%

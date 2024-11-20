@@ -1,0 +1,22 @@
+Analysis Summary for P4_ST_FD
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 3.3697
+Synthetic 1 Entropy: 3.5561
+Synthetic 2 Entropy: 3.4812
+Synthetic 3 Entropy: 3.9356
+
+MinMax Analysis:
+Thresholds: -0.0259 to 0.0199
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -0.0243 to 0.0210
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Steadytime Analysis: Not applicable (>50 distinct values)

@@ -1,0 +1,22 @@
+Analysis Summary for P4_LD
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 3.9824
+Synthetic 1 Entropy: 3.9835
+Synthetic 2 Entropy: 3.9831
+Synthetic 3 Entropy: 3.9563
+
+MinMax Analysis:
+Thresholds: 100.4412 to 629.0871
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -30.7798 to 23.3109
+Synthetic 1 Violation Rate: 0.08%
+Synthetic 2 Violation Rate: 0.41%
+Synthetic 3 Violation Rate: 76.93%
+
+Steadytime Analysis: Not applicable (>50 distinct values)

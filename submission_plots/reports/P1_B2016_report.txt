@@ -1,0 +1,22 @@
+Analysis Summary for P1_B2016
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 4.2259
+Synthetic 1 Entropy: 4.2254
+Synthetic 2 Entropy: 4.2253
+Synthetic 3 Entropy: 4.2027
+
+MinMax Analysis:
+Thresholds: 0.5086 to 1.6819
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -0.0542 to 0.0457
+Synthetic 1 Violation Rate: 0.03%
+Synthetic 2 Violation Rate: 0.19%
+Synthetic 3 Violation Rate: 73.16%
+
+Steadytime Analysis: Not applicable (>50 distinct values)

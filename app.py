@@ -8,7 +8,7 @@ from src.sheet_01.config import GANConfig
 from src.sheet_01.train import GANTrainer
 from src.sheet_01.ks_test import KSTestEvaluator
 from src.sheet_01.data_utils import DataProcessor
-# from src.sheet_01.hparams import get_hyperparameters
+# import src.sheet_01.hparams as hp
 
 from loguru import logger
 import pandas as pd
@@ -44,7 +44,7 @@ def parse_args():
     
     parser.add_argument('-s', '--start', type=str, required=True,
                         choices=['distance', 'oversample', 'analyze-1', 'analyze-2', 'histogram', 
-                                 'gan-generate', 'train'],
+                                 'gan-generate', 'train', 'hparams'],
                         help="""Operation mode selection:
                         'distance': Analyze physical sensor readings (Sheet 1, Task 1)
                         'gan': Generate synthetic data using GAN (Sheet 1, Task 2)
@@ -175,6 +175,10 @@ def main():
                     total = len(df)
                     summary_line = f"{test_name}: {passing}/{total} sensors passed the KS test ({(passing/total*100):.1f}%)\n"
                     f.write(summary_line)
+
+        # elif args.start == 'hparams':
+        #     logger.info("Starting hyperparameter tuning...")
+        #     subprocess.run(["python", hp], check=True)
             
         logger.info(f"Operation '{args.start}' completed successfully")
         

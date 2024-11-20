@@ -1,0 +1,26 @@
+Analysis Summary for P2_MASW
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 0.2936
+Synthetic 1 Entropy: 0.2936
+Synthetic 2 Entropy: 0.2936
+Synthetic 3 Entropy: 0.3043
+
+MinMax Analysis:
+Thresholds: -0.5000 to 1.5000
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -2.0000 to 1.5000
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Steadytime Analysis:
+Thresholds: 36585.0000 to 109755.0000
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 100.00%

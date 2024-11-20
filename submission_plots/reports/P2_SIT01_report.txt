@@ -1,0 +1,22 @@
+Analysis Summary for P2_SIT01
+==================================================
+
+Entropy Analysis:
+Real Data Entropy: 2.9193
+Synthetic 1 Entropy: 3.0078
+Synthetic 2 Entropy: 2.8937
+Synthetic 3 Entropy: 2.9569
+
+MinMax Analysis:
+Thresholds: 755.0000 to 987.0000
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 0.00%
+
+Gradient Analysis:
+Thresholds: -89.0000 to 55.5000
+Synthetic 1 Violation Rate: 0.00%
+Synthetic 2 Violation Rate: 0.00%
+Synthetic 3 Violation Rate: 10.41%
+
+Steadytime Analysis: Not applicable (>50 distinct values)
