@@ -11,15 +11,22 @@ os.makedirs(BASE_DIR / 'saved_model', exist_ok=True)
 @dataclass
 class GANConfig:
     # Model parameters
-    feature_dim: int = 32
-    input_dim: int = 100
+    # feature_dim: int = 32
+    # input_dim: int = 100
+    # dropout_rate: float = 0.3
+
+    # Gan parameters
     dropout_rate: float = 0.3
+    input_shape: tuple = (33, 1)  # Based on the common columns
+    noise_dim: int = 100
+    batch_size: int = 64
+    epochs: int = 10
     
     # Training parameters
-    batch_size: int = 16
-    num_epochs: int = 2
-    learning_rate_g: float = 0.0002
-    learning_rate_d: float = 0.0001
+    # batch_size: int = 16
+    # num_epochs: int = 2
+    # learning_rate_g: float = 0.0002
+    # learning_rate_d: float = 0.0001
     
     # Data generation parameters
     samples_per_day: int = 300
