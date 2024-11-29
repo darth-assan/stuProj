@@ -16,13 +16,13 @@ class GANConfig:
     dropout_rate: float = 0.3
     
     # Training parameters
-    batch_size: int = 16
-    num_epochs: int = 2
+    batch_size: int = 32
+    num_epochs: int = 100
     learning_rate_g: float = 0.0002
     learning_rate_d: float = 0.0001
     
     # Data generation parameters
-    samples_per_day: int = 300
+    samples_per_day: int = 86401
     days_to_generate: int = 3
     
     # Paths

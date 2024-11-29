@@ -176,7 +176,3 @@ def get_hyperparameters():
         "noise_std_dev": [0.01, 0.02, 0.03],
         "num_epochs": [50, 100]
     }
-
-if __name__ == "__main__":
-    best_params = tune_hyperparameters()
-    print(f"Best Hyperparameters: {best_params}")
