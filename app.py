@@ -137,9 +137,9 @@ def main():
         ##########################################################
         elif args.start == 'pca':
             logger.info("Starting principal component analysis with the folder...")
-            dataset = BASE_DIR / 'results' / 'PCA' / 'hai-21.03' if not args.dataset else args.dataset  
+            dataset = DATA_PATH / 'original' / 'hai-21.03' if not args.dataset else args.dataset  
             ##check_file(dataset)  # not a file
-            output = DATA_PATH / 'pca'  if not args.output else args.output
+            output = BASE_DIR/ 'results' / 'PCA'  if not args.output else args.output
             my_obj = PCA_algor(args.beta)
             my_obj.main_func(dataset, output, args.beta)
         ##########################################################
