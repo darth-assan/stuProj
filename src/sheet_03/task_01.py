@@ -1,185 +1,174 @@
 import os
-from scapy.all import rdpcap
+import numpy as np
+import pandas as pd
+import scapy.all as scapy
 from loguru import logger
-from joblib import Parallel, delayed
-from typing import List, Dict, Optional
+from scipy import stats
+import joblib
 
-class PcapProcessor:
-    def __init__(
-        self, 
-        log_level: str = "INFO", 
-        log_file: Optional[str] = None
-    ):
+class CIPPacketParser:
+    def __init__(self, pcap_directory):
         """
-        Initialize the PCAP processor with logging configuration.
+        Initialize parser with directory containing PCAP files
         
         Args:
-            log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
-            log_file: Optional file path for log output
+            pcap_directory (str): Path to directory with PCAP files
         """
-        # Configure logging
-        logger.remove()  # Remove default handler
-        logger.add(
-            sys.stderr, 
-            level=log_level,
-            format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
-                   "<level>{level: <8}</level> | "
-                   "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
-        )
-        
-        # Optional file logging
-        if log_file:
-            logger.add(
-                log_file, 
-                rotation="10 MB",
-                level=log_level
-            )
-        
-        self.logger = logger
+        self.pcap_directory = pcap_directory
+        self.parsed_data = {}
+        logger.add("cip_parsing.log", rotation="10 MB")
 
-    def process_packet(
-        self, 
-        packet, 
-        verbose: bool = False
-    ) -> Optional[Dict]:
+    def _extract_cip_packets(self, pcap_file):
         """
-        Process an individual packet.
+        Extract CIP packets from a single PCAP file
         
         Args:
-            packet: Scapy packet object
-            verbose: Boolean flag to control output detail
+            pcap_file (str): Path to PCAP file
         
         Returns:
-            dict: A summary of the packet or None
+            list: Extracted CIP packets
         """
         try:
-            packet_summary = {
-                'summary': str(packet.summary()),
-                'layers': [layer.name for layer in packet.layers()],
-                'time': packet.time if hasattr(packet, 'time') else None
-            }
-            
-            if verbose:
-                self.logger.debug(f"Packet Summary: {packet_summary}")
-            
-            return packet_summary
+            packets = scapy.rdpcap(pcap_file)
+            cip_packets = [
+                pkt for pkt in packets 
+                if scapy.TCP in pkt and pkt[scapy.TCP].dport == 44818  # Standard CIP port
+            ]
+            return cip_packets
         except Exception as e:
-            self.logger.error(f"Error processing packet: {e}")
+            logger.error(f"Error extracting packets from {pcap_file}: {e}")
+            return []
+
+    def _parse_cip_payload(self, packet):
+        """
+        Parse CIP packet payload for physical readings
+        
+        Args:
+            packet (scapy.Packet): CIP network packet
+        
+        Returns:
+            dict: Parsed physical readings
+        """
+        try:
+            # Implement specific CIP payload parsing logic
+            # This is a placeholder and needs customization based on your specific CIP implementation
+            payload = packet[scapy.Raw].load
+            # Add your specific parsing logic here
+            # Extract sensor names, values, timestamps
+            return {
+                'sensor_name': 'example_sensor',
+                'value': float(payload[:4].hex(), 16),
+                'timestamp': packet.time
+            }
+        except Exception as e:
+            logger.warning(f"Payload parsing error: {e}")
             return None
 
-    def parallel_pcap_process(
-        self, 
-        file_path: str, 
-        num_workers: Optional[int] = None, 
-        packets_per_chunk: int = 1000, 
-        verbose: bool = False
-    ) -> List[Dict]:
+    def parse_network_data(self):
         """
-        Parallelize PCAP file processing using joblib.
-        
-        Args:
-            file_path: Path to the .cap file
-            num_workers: Number of CPU cores to use
-            packets_per_chunk: Number of packets to process in each chunk
-            verbose: Boolean flag to control output detail
-        
-        Returns:
-            list: Processed packet summaries
+        Parse all PCAP files in the directory
         """
-        # Validate input file
-        if not os.path.exists(file_path):
-            self.logger.error(f"File not found: {file_path}")
-            raise FileNotFoundError(f"PCAP file not found: {file_path}")
-        
-        # If no workers specified, use number of logical cores
-        if num_workers is None:
-            num_workers = os.cpu_count()
-        
-        # Load packets
-        self.logger.info(f"Loading packets from {file_path}...")
-        try:
-            packets = rdpcap(file_path)
-        except Exception as e:
-            self.logger.error(f"Error reading PCAP file: {e}")
-            raise
-        
-        total_packets = len(packets)
-        self.logger.info(f"Total packets: {total_packets}")
-        
-        # Split packets into chunks
-        packet_chunks = [
-            packets[i:i + packets_per_chunk] 
-            for i in range(0, total_packets, packets_per_chunk)
+        pcap_files = [
+            os.path.join(self.pcap_directory, f) 
+            for f in os.listdir(self.pcap_directory) 
+            if f.endswith('.pcap')
         ]
-        
-        # Parallel processing using joblib
-        try:
-            processed_packets = Parallel(n_jobs=num_workers)(
-                delayed(self.process_batch)(chunk, verbose) 
-                for chunk in packet_chunks
-            )
-        except Exception as e:
-            self.logger.error(f"Parallel processing error: {e}")
-            raise
-        
-        # Flatten results
-        processed_packets = [
-            pkt for chunk in processed_packets 
-            for pkt in chunk if pkt is not None
-        ]
-        
-        self.logger.success(f"Processed {len(processed_packets)} packets successfully")
-        return processed_packets
 
-    def process_batch(
-        self, 
-        chunk: List, 
-        verbose: bool = False
-    ) -> List[Dict]:
+        # Use joblib for parallel processing
+        results = joblib.Parallel(n_jobs=-1)(
+            joblib.delayed(self._process_pcap_file)(pcap_file) 
+            for pcap_file in pcap_files
+        )
+
+        # Combine results
+        for result in results:
+            self.parsed_data.update(result)
+
+    def _process_pcap_file(self, pcap_file):
         """
-        Process a batch of packets.
+        Process a single PCAP file
         
         Args:
-            chunk: List of packets
-            verbose: Boolean flag to control output detail
+            pcap_file (str): Path to PCAP file
         
         Returns:
-            list: Processed packet summaries
+            dict: Parsed data from the file
         """
-        return [
-            self.process_packet(pkt, verbose) 
-            for pkt in chunk if pkt is not None
-        ]
+        logger.info(f"Processing file: {pcap_file}")
+        cip_packets = self._extract_cip_packets(pcap_file)
+        file_data = {}
+
+        for packet in cip_packets:
+            parsed_reading = self._parse_cip_payload(packet)
+            if parsed_reading:
+                sensor = parsed_reading['sensor_name']
+                if sensor not in file_data:
+                    file_data[sensor] = []
+                file_data[sensor].append(parsed_reading['value'])
+
+        return file_data
+
+    def compute_statistics(self):
+        """
+        Compute statistics for parsed data
+        
+        Returns:
+            dict: Computed statistics for each sensor
+        """
+        statistics = {}
+        for sensor, values in self.parsed_data.items():
+            statistics[sensor] = {
+                'mean': np.mean(values),
+                'median': np.median(values),
+                'std_dev': np.std(values)
+            }
+        return statistics
+
+    def compare_with_original_dataset(self, original_dataset):
+        """
+        Compare parsed data with original dataset
+        
+        Args:
+            original_dataset (dict): Statistics from original dataset
+        """
+        parsed_stats = self.compute_statistics()
+        comparison_results = {}
+
+        for sensor in set(parsed_stats.keys()) | set(original_dataset.keys()):
+            parsed_sensor_stats = parsed_stats.get(sensor, {})
+            original_sensor_stats = original_dataset.get(sensor, {})
+
+            comparison_results[sensor] = {
+                'parsed_stats': parsed_sensor_stats,
+                'original_stats': original_sensor_stats,
+                'differences': {
+                    metric: abs(parsed_sensor_stats.get(metric, 0) - 
+                               original_sensor_stats.get(metric, 0))
+                    for metric in ['mean', 'median', 'std_dev']
+                }
+            }
+
+        return comparison_results
 
 def main():
-    import sys
+    PCAP_DIRECTORY = '/path/to/your/pcap/files'
     
-    # Example usage
-    input_file = '/Users/darth/Downloads/packet_00019_20170614105105.cap'
+    # Example original dataset statistics (you'd load this from your reference)
+    original_dataset_stats = {
+        'sensor1': {'mean': 50.0, 'median': 49.5, 'std_dev': 5.0},
+        # Add more sensors
+    }
+
+    parser = CIPPacketParser(PCAP_DIRECTORY)
+    parser.parse_network_data()
     
-    try:
-        # Initialize processor with logging
-        processor = PcapProcessor(
-            log_level="DEBUG",  # Adjust log level as needed
-            log_file="pcap_processing.log"  # Optional log file
-        )
-        
-        # Process the file with verbose output for the first 5 packets
-        processed_packets = processor.parallel_pcap_process(
-            input_file, 
-            num_workers=None,  # Use all available cores
-            packets_per_chunk=1000,  # Adjust based on memory constraints
-            verbose=True  # Set to False for less output
-        )
-        
-        # Optional: Further analysis or saving results
-        # For example, printing first 5 processed packets
-        for i, pkt in enumerate(processed_packets[:5], 1):
-            processor.logger.info(f"Processed Packet {i}: {pkt}")
+    # Compute and print statistics
+    parsed_stats = parser.compute_statistics()
+    logger.info("Parsed Statistics: ", parsed_stats)
     
-    except Exception as e:
-        logger.error(f"Processing failed: {e}")
-        sys.exit(1)
+    # Compare with original dataset
+    comparison = parser.compare_with_original_dataset(original_dataset_stats)
+    logger.info("Comparison Results: ", comparison)
 
 if __name__ == "__main__":
     main()

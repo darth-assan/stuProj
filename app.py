@@ -48,7 +48,6 @@ def parse_args():
                                  'gan-generate', 'train', 'hparams', 'pca'],
                         help="""Operation mode selection:
                         'distance': Analyze physical sensor readings (Sheet 1, Task 1)
-                        'gan': Generate synthetic data using GAN (Sheet 1, Task 2)
                         'oversample': Generate synthetic data using oversampling
                         'analyze1': Analyze synthetic datasets (Sheet 1 - K-S Test)
                         'analyze2': Analyze synthetic datasets (Sheet 2 - CDF/CCDF)
@@ -95,7 +94,7 @@ def parse_args():
     args = parser.parse_args()
 
     # Validate arguments based on the mode
-    if args.start != 'oversample' and any(arg in sys.argv for arg in ['--k', '--percentage', '--normalization']):
+    if args.start != 'oversample' and any(arg in sys.argv for arg in ['--k', '-k', '--percentage', '-p', '--normalization', '-n']):
         parser.error("--k, --percentage, and --normalization are only valid for 'oversample' mode")
 
     return args
@@ -154,7 +153,8 @@ def main():
                 synthetic_data_paths = args.synthetic_data,
                 output_path = output
             )
-            analyzer.analyze_all_columns()
+            analyzer.analyze_datasets()
+            logger.info(f"Analysis completed. Results saved to {output}")   
 
         elif args.start == 'train':
             logger.info("Starting GAN model training...")
@@ -196,9 +196,10 @@ def main():
                     summary_line = f"{test_name}: {passing}/{total} sensors passed the KS test ({(passing/total*100):.1f}%)\n"
                     f.write(summary_line)
 
-        # elif args.start == 'hparams':
-        #     logger.info("Starting hyperparameter tuning...")
-        #     subprocess.run(["python", hp], check=True)
+        elif args.start == 'hparams':
+            logger.info("Starting hyperparameter tuning...")
+            import src.sheet_01.hparams as hp
+            #subprocess.run(["python", hp], check=True)
             
         logger.info(f"Operation '{args.start}' completed successfully")
         
