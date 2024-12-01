@@ -8,6 +8,7 @@ from src.sheet_01.config import GANConfig
 from src.sheet_01.train import GANTrainer
 from src.sheet_01.ks_test import KSTestEvaluator
 from src.sheet_01.data_utils import DataProcessor
+from src.sheet_03.task_03 import PCA_algor
 # import src.sheet_01.hparams as hp
 
 from loguru import logger
@@ -44,7 +45,7 @@ def parse_args():
     
     parser.add_argument('-s', '--start', type=str, required=True,
                         choices=['distance', 'oversample', 'analyze-1', 'analyze-2', 'histogram', 
-                                 'gan-generate', 'train', 'hparams'],
+                                 'gan-generate', 'train', 'hparams', 'pca'],
                         help="""Operation mode selection:
                         'distance': Analyze physical sensor readings (Sheet 1, Task 1)
                         'gan': Generate synthetic data using GAN (Sheet 1, Task 2)
@@ -54,7 +55,8 @@ def parse_args():
                         'histogram': Generate histograms of distances(Sheet 1)
                         'gan-generate': Generate synthetic data using GAN (Sheet 1, Task 3)
                         'train': Train GAN model (Sheet 1, Task 3)
-                        'hparams': Get hyperparameters for the GAN model""")
+                        'hparams': Get hyperparameters for the GAN model
+                        'pca': performing pca on the test and training data (sheet 3, Task 3)""")
     
     # General arguments
     parser.add_argument('-d', '--dataset', type=str,
@@ -73,6 +75,14 @@ def parse_args():
     oversample_group.add_argument('-n', '--normalization', choices=['min_max', 'z_score'], 
                                   default='min_max',
                                   help="Normalization method (for oversampling)")
+    
+    ####################################################################
+    # PCA
+    PCA_group = parser.add_argument_group('PCA')
+    PCA_group.add_argument('-b', '--beta', type=float, choices=[0.998, 0.895, 0.879], default=0.998,
+                                  help="the beta value of which the PCA trims to lower dimensions")
+    ####################################################################
+
 
     # Analysis-specific arguments
     analysis_group = parser.add_argument_group('Analysis')
@@ -123,6 +133,16 @@ def main():
             generator.normalize_data()
             synthetic_data = generator.generate_samples(args.percentage, args.k)
             generator.save_synthetic_data(synthetic_data, output)
+            
+        ##########################################################
+        elif args.start == 'pca':
+            logger.info("Starting principal component analysis with the folder...")
+            dataset = DATA_PATH / 'original' / 'hai-21.03' if not args.dataset else args.dataset  
+            ##check_file(dataset)  # not a file
+            output = DATA_PATH / 'pca'  if not args.output else args.output
+            my_obj = PCA_algor(args.beta)#####################
+            my_obj.main_func(dataset, output, args.beta)
+        ##########################################################
             
         elif args.start == 'analyze-2':
             logger.info("Starting synthetic data analysis...")
