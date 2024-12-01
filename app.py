@@ -37,6 +37,7 @@ def parse_args():
         2. GAN-based Data Generation (from Sheet 1)
         3. Oversampling method for Synthetic Data Generation (from Sheet 2)
         4. Synthetic Data Analysis
+        5. Principal Component Analysis (from sheet 3)
         
         Use -s <keyword> to select the operation mode.
         """,
@@ -136,10 +137,10 @@ def main():
         ##########################################################
         elif args.start == 'pca':
             logger.info("Starting principal component analysis with the folder...")
-            dataset = DATA_PATH / 'original' / 'hai-21.03' if not args.dataset else args.dataset  
+            dataset = BASE_DIR / 'results' / 'PCA' / 'hai-21.03' if not args.dataset else args.dataset  
             ##check_file(dataset)  # not a file
             output = DATA_PATH / 'pca'  if not args.output else args.output
-            my_obj = PCA_algor(args.beta)#####################
+            my_obj = PCA_algor(args.beta)
             my_obj.main_func(dataset, output, args.beta)
         ##########################################################
             
