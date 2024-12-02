@@ -74,22 +74,7 @@ class PCA_algor:
                 elif "train" in file_name.lower():  # Check if the file is a "train" file
                     dftrain_2103 = pd.concat([dftrain_2103, pd.read_csv(file_path)], ignore_index=True)
         dftest_2103['time'] = range(0, len(dftest_2103) + 0)
-        dftrain_2103['time'] = range(0, len(dftrain_2103) + 0)
-        
-        # Concatinating the hai files
-        #df1 = pd.read_csv(r'..\..\data\original\hai-21.03\test1.csv')
-        #df2 = pd.read_csv(r'..\..\data\original\hai-21.03\test2.csv')
-        #df3 = pd.read_csv(r'..\..\data\original\hai-21.03\test3.csv')
-        #df4 = pd.read_csv(r'..\..\data\original\hai-21.03\test4.csv')
-        #df5 = pd.read_csv(r'..\..\data\original\hai-21.03\test5.csv')
-        #df6 = pd.read_csv(r'..\..\data\original\hai-21.03\train1.csv')
-        #df7 = pd.read_csv(r'..\..\data\original\hai-21.03\train2.csv')
-        #df8 = pd.read_csv(r'..\..\data\original\hai-21.03\train3.csv')
-        #hai_2103_test = pd.concat([df1, df2, df3, df4, df5])
-        #hai_2103_test['time'] = range(1, len(hai_2103_test) + 1) # switch time to a range
-        #hai_2103_train = pd.concat([df6, df7, df8])
-        #hai_2103_train['time'] = range(1, len(hai_2103_train) + 1) # switch time to a range
-        
+        dftrain_2103['time'] = range(0, len(dftrain_2103) + 0)        
         return dftest_2103, dftrain_2103
     
 
@@ -101,48 +86,6 @@ class PCA_algor:
         np.savetxt(f'{dir_out}\\hai_21.03_test_{self.beta}.csv', temp_pca, delimiter=",")
         temp_pca, temp_evr = self.pca_with_single_beta(dftrain_2103, self.beta)
         np.savetxt(f'{dir_out}\\hai_21.03_train_{self.beta}.csv', temp_pca, delimiter=",")
-
-        """
-        betas = [0.998, 0.895, 0.879]
-        for beta in betas:
-            temp_pca, temp_evr = pca_with_single_beta(dftest_2103, beta)
-            np.savetxt(f'hai_21.03_test_{beta}.csv', temp_pca, delimiter=",")
-            temp_pca, temp_evr = pca_with_single_beta(dftrain_2103, beta)
-            np.savetxt(f'hai_21.03_train_{beta}.csv', temp_pca, delimiter=",")
-        """
-
-
-
-
-
-
-
-
-
-"""
-# EXAMPLE OUTPUT PLOT
-df = pd.read_csv('hai_21.03_test_0.998.csv', header=None)
-output = np.array(df)
-for j in range(len(output[0])):
-    plt.figure(j)
-    for i in range(len(output[0])):
-        plt.scatter(output[:,j], output[:,i], s=0.5, label=f'X={i+1}')
-        #plt.scatter(output[:,4], output[:,0], s=0.5, label=f'X={i+1}')
-    plt.xlabel(f'df_pca_S[:,{j+1}]')
-    plt.ylabel('df_pca_S[:,X]')
-    plt.legend()
-    plt.title(f'PCA of feature {j+1} vs X')
-    plt.show()
-"""
-# Note to self
-# (stuProj) C:\Users\alvis\Documents\stuProj>python app.py -s pca -b 0.998
-# use the one used in the gan, the first 2 versions
-#per beta, per version, for test and train -> 6*2
-
-#TASK_01
-#
-#parellelize process multiple files simultaniously, 
-#if run, 96 corse should be loaded. htop
 
 
 
