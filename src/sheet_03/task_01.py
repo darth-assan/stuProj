@@ -1,174 +1,101 @@
-import os
-import numpy as np
+from scapy.all import *
+from collections import defaultdict
 import pandas as pd
-import scapy.all as scapy
-from loguru import logger
-from scipy import stats
-import joblib
+from datetime import datetime
 
-class CIPPacketParser:
-    def __init__(self, pcap_directory):
-        """
-        Initialize parser with directory containing PCAP files
+class SWaTParser:
+    def __init__(self):
+        self.data_points = defaultdict(list)
+        self.timestamps = []
         
-        Args:
-            pcap_directory (str): Path to directory with PCAP files
-        """
-        self.pcap_directory = pcap_directory
-        self.parsed_data = {}
-        logger.add("cip_parsing.log", rotation="10 MB")
-
-    def _extract_cip_packets(self, pcap_file):
-        """
-        Extract CIP packets from a single PCAP file
-        
-        Args:
-            pcap_file (str): Path to PCAP file
-        
-        Returns:
-            list: Extracted CIP packets
-        """
-        try:
-            packets = scapy.rdpcap(pcap_file)
-            cip_packets = [
-                pkt for pkt in packets 
-                if scapy.TCP in pkt and pkt[scapy.TCP].dport == 44818  # Standard CIP port
-            ]
-            return cip_packets
-        except Exception as e:
-            logger.error(f"Error extracting packets from {pcap_file}: {e}")
-            return []
-
-    def _parse_cip_payload(self, packet):
-        """
-        Parse CIP packet payload for physical readings
-        
-        Args:
-            packet (scapy.Packet): CIP network packet
-        
-        Returns:
-            dict: Parsed physical readings
-        """
-        try:
-            # Implement specific CIP payload parsing logic
-            # This is a placeholder and needs customization based on your specific CIP implementation
-            payload = packet[scapy.Raw].load
-            # Add your specific parsing logic here
-            # Extract sensor names, values, timestamps
-            return {
-                'sensor_name': 'example_sensor',
-                'value': float(payload[:4].hex(), 16),
-                'timestamp': packet.time
-            }
-        except Exception as e:
-            logger.warning(f"Payload parsing error: {e}")
-            return None
-
-    def parse_network_data(self):
-        """
-        Parse all PCAP files in the directory
-        """
-        pcap_files = [
-            os.path.join(self.pcap_directory, f) 
-            for f in os.listdir(self.pcap_directory) 
-            if f.endswith('.pcap')
+        # Define sensor and actuator columns based on SWaT structure
+        self.columns = [
+            'Time',
+            'SWAT_SUTD:RSLinx Enterprise:P1.HMI_FIT101.Pv',
+            'SWAT_SUTD:RSLinx Enterprise:P1.HMI_LIT101.Pv',
+            # Add all other columns as per example
         ]
-
-        # Use joblib for parallel processing
-        results = joblib.Parallel(n_jobs=-1)(
-            joblib.delayed(self._process_pcap_file)(pcap_file) 
-            for pcap_file in pcap_files
-        )
-
-        # Combine results
-        for result in results:
-            self.parsed_data.update(result)
-
-    def _process_pcap_file(self, pcap_file):
-        """
-        Process a single PCAP file
         
-        Args:
-            pcap_file (str): Path to PCAP file
+    def process_packet(self, packet):
+        if not (UDP in packet and packet[UDP].sport == 2222 and packet[UDP].dport == 2222):
+            return
+            
+        timestamp = packet.time
+        formatted_time = datetime.fromtimestamp(timestamp).strftime('%d/%m/%Y %I:%M:%S.%f %p')
         
-        Returns:
-            dict: Parsed data from the file
-        """
-        logger.info(f"Processing file: {pcap_file}")
-        cip_packets = self._extract_cip_packets(pcap_file)
-        file_data = {}
-
-        for packet in cip_packets:
-            parsed_reading = self._parse_cip_payload(packet)
-            if parsed_reading:
-                sensor = parsed_reading['sensor_name']
-                if sensor not in file_data:
-                    file_data[sensor] = []
-                file_data[sensor].append(parsed_reading['value'])
-
-        return file_data
-
-    def compute_statistics(self):
-        """
-        Compute statistics for parsed data
+        if Raw in packet:
+            raw_data = packet[Raw].load
+            
+            # Skip EtherNet/IP header
+            # Type ID: Sequenced Address Item (0x8002)
+            # Type ID: Connected Data Item (0x00b1)
+            data_offset = 4  # Adjust based on actual header size
+            
+            # Extract CIP I/O data
+            cip_data = raw_data[data_offset:]
+            
+            # Parse the data into sensor/actuator values
+            readings = self.parse_cip_values(cip_data)
+            
+            if readings:
+                self.timestamps.append(formatted_time)
+                for key, value in readings.items():
+                    self.data_points[key].append(value)
+    
+    def parse_cip_values(self, cip_data):
+        readings = {}
         
-        Returns:
-            dict: Computed statistics for each sensor
-        """
-        statistics = {}
-        for sensor, values in self.parsed_data.items():
-            statistics[sensor] = {
-                'mean': np.mean(values),
-                'median': np.median(values),
-                'std_dev': np.std(values)
-            }
-        return statistics
-
-    def compare_with_original_dataset(self, original_dataset):
-        """
-        Compare parsed data with original dataset
-        
-        Args:
-            original_dataset (dict): Statistics from original dataset
-        """
-        parsed_stats = self.compute_statistics()
-        comparison_results = {}
-
-        for sensor in set(parsed_stats.keys()) | set(original_dataset.keys()):
-            parsed_sensor_stats = parsed_stats.get(sensor, {})
-            original_sensor_stats = original_dataset.get(sensor, {})
-
-            comparison_results[sensor] = {
-                'parsed_stats': parsed_sensor_stats,
-                'original_stats': original_sensor_stats,
-                'differences': {
-                    metric: abs(parsed_sensor_stats.get(metric, 0) - 
-                               original_sensor_stats.get(metric, 0))
-                    for metric in ['mean', 'median', 'std_dev']
-                }
-            }
-
-        return comparison_results
+        # Example parsing logic - adjust based on actual data format
+        try:
+            # Parse hex data into corresponding sensor/actuator values
+            # Example: bcaf01000000ffffffff000000000000000000000000000000
+            
+            # Each sensor/actuator value might occupy specific positions
+            # in the data string with specific lengths
+            
+            readings['SWAT_SUTD:RSLinx Enterprise:P1.HMI_FIT101.Pv'] = float(self.extract_value(cip_data, 0, 4))
+            readings['SWAT_SUTD:RSLinx Enterprise:P1.HMI_LIT101.Pv'] = float(self.extract_value(cip_data, 4, 4))
+            # Add parsing for other sensors/actuators
+            
+        except Exception as e:
+            print(f"Error parsing CIP data: {e}")
+            return None
+            
+        return readings
+    
+    def extract_value(self, data, start, length):
+        # Extract and convert binary data to appropriate format
+        # This is a placeholder - implement actual conversion logic
+        value_bytes = data[start:start+length]
+        return int.from_bytes(value_bytes, byteorder='little')
+    
+    def create_dataframe(self):
+        df = pd.DataFrame(self.data_points, index=self.timestamps)
+        df.index.name = 'Time'
+        return df
+    
+    def save_to_csv(self, filename):
+        df = self.create_dataframe()
+        df.to_csv(filename)
 
 def main():
-    PCAP_DIRECTORY = '/path/to/your/pcap/files'
+    parser = SWaTParser()
     
-    # Example original dataset statistics (you'd load this from your reference)
-    original_dataset_stats = {
-        'sensor1': {'mean': 50.0, 'median': 49.5, 'std_dev': 5.0},
-        # Add more sensors
-    }
-
-    parser = CIPPacketParser(PCAP_DIRECTORY)
-    parser.parse_network_data()
+    # Process pcap files
+    pcap_files = ['your_pcap_file.pcap']  # Add your pcap files
     
-    # Compute and print statistics
-    parsed_stats = parser.compute_statistics()
-    logger.info("Parsed Statistics: ", parsed_stats)
+    for pcap_file in pcap_files:
+        packets = PcapReader(pcap_file)
+        for packet in packets:
+            parser.process_packet(packet)
     
-    # Compare with original dataset
-    comparison = parser.compare_with_original_dataset(original_dataset_stats)
-    logger.info("Comparison Results: ", comparison)
+    # Save results
+    parser.save_to_csv('parsed_swat_data.csv')
+    
+    # Calculate statistics
+    df = pd.read_csv('parsed_swat_data.csv')
+    statistics = df.describe()
+    statistics.to_csv('statistics.csv')
 
 if __name__ == "__main__":
     main()
