@@ -3,21 +3,6 @@ import struct
 import pandas as pd
 from datetime import datetime
 
-# Raw data in hex
-def try_decoding_data(raw_data):
-    # Break into 4-byte chunks for potential floats
-    for i in range(0, len(raw_data), 8):  # 8 hex characters = 4 bytes
-        chunk = raw_data[i:i+8]
-        if len(chunk) == 8:  # Ensure the chunk is complete
-            # Convert hex to bytes
-            bytes_data = bytes.fromhex(chunk)
-            # Decode as IEEE 754 float
-            try:
-                float_value = struct.unpack('!f', bytes_data)[0]  # Big-endian float
-                print(f"Chunk: {chunk} -> Float: {float_value}")
-            except struct.error:
-                print(f"Chunk: {chunk} -> Not a valid float")
-
 #https://scholar.google.com.sg/citations?view_op=view_citation&hl=en&user=HvkAJmMAAAAJ&citation_for_view=HvkAJmMAAAAJ:d1gkVwhDpl0C
 # Secure Water Treatment system (SWaT)
 
@@ -83,6 +68,23 @@ CIP_SERVICE_MAP = {
 }
 
 
+# Raw data in hex
+def decoding_data(raw_data, request_path):
+    if request_path != None:
+        if request_path == "HMI_AIT504" and len(raw_data) != 4: # took effect on the 81st entry
+            hex_segment = raw_data[38:46]
+            #print("sdfsdfhaksjhfkusefhkefkashudfk", raw_data)
+            #print("dddddddddddddddddddddddddddddd",hex_segment)
+            bytes_data = bytes.fromhex(hex_segment) # Convert hex to bytes
+            # Decode as IEEE 754 float (big-endian)
+            decoded = struct.unpack('!f', bytes_data)[0]  # '!f' = big-endian single-precision float
+        else:
+            decoded = raw_data
+    else:
+        decoded = raw_data
+    return decoded
+
+
 def add_entry_to_table(request_path, data, base_time):
     global data_table
 
@@ -109,9 +111,8 @@ def get_vendor_by_mac(mac_address):
 
 
 
-
 # Load the .cap file
-file_path = 'first100_00173.cap'
+file_path = './first100_00173.cap'
 data_table = pd.DataFrame(columns=["Timestamp"])
 capture = pyshark.FileCapture(file_path)
 
@@ -154,7 +155,6 @@ for packet in capture:
             else:
                 print("CIP Request Path: Not found")
 
-            
             #print("hhhhhhhhhhhhhhh:",(packet.cipcls.cip_data))
             #print("hhhhhhhhhhhhhhh:",dir(packet.cipcls))
             data = None
@@ -164,9 +164,8 @@ for packet in capture:
             except: pass
             if data != None:
                 converted = data.replace(":", "")
+                converted = decoding_data(converted, request_path)
                 print(f"Data: {converted}")
-                #try_decoding_data(converted)
-                # Add entry to the DataFrame
                 if request_path:
                     add_entry_to_table(request_path, converted, timestring)
             else:
@@ -189,13 +188,6 @@ print("median =",  numeric_df.median())
 print("std_dev =",  numeric_df.std())
 
 
-
-
-
-
-
-# Optionally, save the parsed data to a file or data structure for analysis.
-# store physical readings, name of the sensor / actuator, corresponding (numerical) values. 
 #htop
 #pip freeze -> generate requirements
 
