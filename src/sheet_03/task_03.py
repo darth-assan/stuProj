@@ -1,5 +1,5 @@
 debugmode = False
-if debugmode: print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nProcessing sheet_03_test.py")
+if debugmode: print("\n"*50,"Processing sheet_03_test.py")
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
