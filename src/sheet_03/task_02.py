@@ -1,225 +1,388 @@
-#POC Autoencoder
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
-import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader
+import os
+import json
+import pandas as pd
+from loguru import logger
+from sklearn.model_selection import train_test_split, ParameterGrid
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+import sys
+from sklearn.preprocessing import MinMaxScaler
+
+
+# Configure logger
+logger.remove()
+logger.add("autoencoder.log", rotation="500 MB", level="DEBUG")
+logger.add(sys.stdout, level="INFO")
 
 class ConfigurableAutoencoder(nn.Module):
+    """
+    A configurable autoencoder that supports different layer types and architectures.
+
+    Args:
+        input_dim (int): Dimension of input data
+        compression_factor (int): Factor by which to compress the input
+        num_hidden_layers (int): Number of hidden layers in encoder/decoder
+        layer_type (str): Type of layer ('dense', 'conv1d', or 'lstm')
+        activation (str): Activation function to use ('relu', 'tanh', or 'sigmoid')
+    """
     def __init__(self, input_dim, compression_factor, num_hidden_layers, layer_type='dense', activation='relu'):
         super().__init__()
+        logger.info(f"Initializing autoencoder with {layer_type} layers and {activation} activation")
+
         self.input_dim = input_dim
-        self.compressed_dim = int(input_dim / compression_factor)
-        
-        # Calculate layer sizes
+        self.compressed_dim = max(1, int(input_dim / compression_factor))
+        self.layer_type = layer_type
+
+        # Calculate layer sizes for encoder/decoder
         layer_sizes = np.linspace(input_dim, self.compressed_dim, num_hidden_layers + 1, dtype=int)
-        
-        # Choose activation function
-        if activation == 'relu':
-            self.activation = nn.ReLU()
-        elif activation == 'tanh':
-            self.activation = nn.Tanh()
-        else:
-            self.activation = nn.Sigmoid()
-            
-        # Build encoder
-        encoder_layers = []
-        for i in range(len(layer_sizes) - 1):
-            if layer_type == 'dense':
-                encoder_layers.append(nn.Linear(layer_sizes[i], layer_sizes[i+1]))
-                encoder_layers.append(self.activation)
-        self.encoder = nn.Sequential(*encoder_layers)
-        
-        # Build decoder
-        decoder_layers = []
-        for i in range(len(layer_sizes) - 1, 0, -1):
-            if layer_type == 'dense':
-                decoder_layers.append(nn.Linear(layer_sizes[i], layer_sizes[i-1]))
-                decoder_layers.append(self.activation)
-        self.decoder = nn.Sequential(*decoder_layers)
-    
+
+        # Map activation functions
+        self.activation_functions = {
+            'relu': nn.ReLU(),
+            'tanh': nn.Tanh(),
+            'sigmoid': nn.Sigmoid()
+        }
+        self.activation = self.activation_functions[activation]
+
+        # Build network architecture
+        self._build_network(layer_sizes)
+
+        logger.debug(f"Network architecture - Input dim: {input_dim}, Compressed dim: {self.compressed_dim}")
+
+    def _build_network(self, layer_sizes):
+        """Build encoder and decoder networks based on specified layer type"""
+        if self.layer_type == 'dense':
+            self.encoder = self._build_dense_layers(layer_sizes, forward=True)
+            self.decoder = self._build_dense_layers(layer_sizes, forward=False)
+        elif self.layer_type == 'conv1d':
+            self.encoder = self._build_conv1d_layers(layer_sizes, forward=True)
+            self.decoder = self._build_conv1d_layers(layer_sizes, forward=False)
+        elif self.layer_type == 'lstm':
+            self.encoder = self._build_lstm_layers(layer_sizes, forward=True)
+            self.decoder = self._build_lstm_layers(layer_sizes, forward=False)
+
+    def _build_dense_layers(self, layer_sizes, forward=True):
+        """Build fully connected layers for encoder/decoder"""
+        layers = []
+        sizes = list(layer_sizes) if forward else list(reversed(layer_sizes))
+
+        for i in range(len(sizes) - 1):
+            layers.append(nn.Linear(sizes[i], sizes[i+1]))
+            layers.append(self.activation)
+
+        return nn.Sequential(*layers)
+
+    def _build_conv1d_layers(self, layer_sizes, forward=True):
+        """Build 1D convolutional layers for encoder/decoder"""
+        layers = []
+        sizes = list(layer_sizes) if forward else list(reversed(layer_sizes))
+
+        for i in range(len(sizes) - 1):
+            if forward:
+                layers.append(nn.Conv1d(1, 1, kernel_size=3, padding=1))
+            else:
+                layers.append(nn.ConvTranspose1d(1, 1, kernel_size=3, padding=1))
+            layers.append(self.activation)
+
+        return nn.Sequential(*layers)
+
+    def _build_lstm_layers(self, layer_sizes, forward=True):
+        """Build LSTM layers for encoder/decoder"""
+        layers = nn.ModuleList()
+        sizes = list(layer_sizes) if forward else list(reversed(layer_sizes))
+
+        for i in range(len(sizes) - 1):
+            layers.append(nn.LSTM(int(sizes[i]), int(sizes[i+1]), batch_first=True))
+
+        return layers
+
     def forward(self, x):
-        encoded = self.encoder(x)
-        decoded = self.decoder(encoded)
+        """Forward pass through the autoencoder"""
+        if self.layer_type == 'dense':
+            encoded = self.encoder(x)
+            decoded = self.decoder(encoded)
+        elif self.layer_type == 'conv1d':
+            x = x.unsqueeze(1)
+            encoded = self.encoder(x).squeeze(1)
+            decoded = self.decoder(encoded.unsqueeze(1)).squeeze(1)
+        elif self.layer_type == 'lstm':
+            for layer in self.encoder:
+                x, _ = layer(x)
+                x = self.activation(x)
+            encoded = x
+            for layer in self.decoder:
+                x, _ = layer(x)
+                x = self.activation(x)
+            decoded = x
+
         return decoded, encoded
 
-def train_autoencoder(model, train_loader, num_epochs=50):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
-    optimizer = torch.optim.Adam(model.parameters())
-    criterion = nn.MSELoss()
-    
-    print("\nTraining autoencoder...")
-    for epoch in range(num_epochs):
-        total_loss = 0
-        for batch in train_loader:
-            batch = batch[0].to(device)
-            optimizer.zero_grad()
-            decoded, encoded = model(batch)
-            loss = criterion(decoded, batch)
-            loss.backward()
-            optimizer.step()
-            total_loss += loss.item()
-        
-        if (epoch + 1) % 10 == 0:
-            print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {total_loss/len(train_loader):.6f}")
+class ModelTrainer:
+    """Handles model training and comprehensive hyperparameter tuning"""
+    def __init__(self):
+        self.hyperparameters = {
+            'learning_rates': [0.0001, 0.001],  # Added more learning rates
+            'batch_sizes': [64, 128],  # Added more batch sizes
+            'epochs': [50, 100],  # Added more epoch options
+            'layer_types': ['dense', 'conv1d', 'lstm'],
+            'activations': ['relu', 'tanh', 'sigmoid'],
+            'compression_factors': [2, 4],  # Added compression factor grid
+            'num_hidden_layers': [2, 3]  # Added hidden layers grid
+        }
+        logger.info("Initialized ModelTrainer with expanded hyperparameters")
 
-def extract_features(model, data_loader):
+    def grid_search(self, X_train, X_test):
+        """
+        Perform exhaustive grid search over hyperparameters
+
+        Args:
+            X_train: Training data
+            X_test: Test data
+
+        Returns:
+            Best model configurations and their performance
+        """
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        best_models = []
+
+        # Create parameter grid
+        param_grid = ParameterGrid({
+            'learning_rate': self.hyperparameters['learning_rates'],
+            'batch_size': self.hyperparameters['batch_sizes'],
+            'epochs': self.hyperparameters['epochs'],
+            'layer_type': self.hyperparameters['layer_types'],
+            'activation': self.hyperparameters['activations'],
+            'compression_factor': self.hyperparameters['compression_factors'],
+            'num_hidden_layers': self.hyperparameters['num_hidden_layers']
+        })
+
+        logger.info(f"Starting grid search with {len(param_grid)} configurations")
+
+        for params in param_grid:
+            try:
+                logger.info(f"Testing configuration: {params}")
+
+                # Prepare data loader with current batch size
+                train_loader = DataLoader(
+                    torch.FloatTensor(X_train).unsqueeze(1),
+                    batch_size=params['batch_size'],
+                    shuffle=True
+                )
+                test_loader = DataLoader(
+                    torch.FloatTensor(X_test).unsqueeze(1),
+                    batch_size=params['batch_size']
+                )
+
+                # Create model with current hyperparameters
+                model = ConfigurableAutoencoder(
+                    input_dim=X_train.shape[1],
+                    compression_factor=params['compression_factor'],
+                    num_hidden_layers=params['num_hidden_layers'],
+                    layer_type=params['layer_type'],
+                    activation=params['activation']
+                )
+
+                # Train model
+                best_model, best_loss = self.train_model(
+                    model,
+                    train_loader,
+                    learning_rate=params['learning_rate'],
+                    num_epochs=params['epochs']
+                )
+
+                # Store results
+                best_models.append({
+                    'params': params,
+                    'best_model': best_model,
+                    'best_loss': best_loss
+                })
+
+                logger.success(f"Configuration completed. Best loss: {best_loss:.6f}")
+
+            except Exception as e:
+                logger.error(f"Error in configuration {params}: {str(e)}")
+                continue
+
+        # Sort models by loss and return top configurations
+        best_models.sort(key=lambda x: x['best_loss'])
+
+        logger.info("Grid search completed. Top 3 model configurations:")
+        for i, model_config in enumerate(best_models[:3], 1):
+            logger.info(f"Rank {i}: Loss = {model_config['best_loss']:.6f}, Params = {model_config['params']}")
+
+        return best_models
+
+    def train_model(self, model, train_loader, learning_rate, num_epochs, patience=10):
+        """
+        Train the autoencoder model with early stopping and learning rate scheduling
+
+        Args:
+            model: The autoencoder model
+            train_loader: DataLoader for training data
+            learning_rate: Learning rate for optimization
+            num_epochs: Number of training epochs
+            patience: Number of epochs to wait for improvement before stopping
+        """
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        logger.info(f"Training on device: {device}")
+
+        model = model.to(device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+        criterion = nn.MSELoss()
+        scheduler = ReduceLROnPlateau(optimizer, 'min', patience=patience//2, verbose=True)
+
+        best_loss = float('inf')
+        best_model = None
+        epochs_no_improve = 0
+
+        for epoch in range(num_epochs):
+            model.train()
+            total_loss = 0
+
+            for batch_idx, batch in enumerate(train_loader):
+                batch = batch[0].to(device)
+                optimizer.zero_grad()
+                decoded, _ = model(batch)
+                loss = criterion(decoded, batch)
+                loss.backward()
+                optimizer.step()
+                total_loss += loss.item()
+
+            avg_loss = total_loss / len(train_loader)
+            logger.info(f"Epoch {epoch}/{num_epochs}, Average Loss: {avg_loss:.6f}")
+
+            scheduler.step(avg_loss)
+
+            if avg_loss < best_loss:
+                best_loss = avg_loss
+                best_model = model.state_dict().copy()
+                logger.info(f"New best model found with loss: {best_loss:.6f}")
+                epochs_no_improve = 0
+            else:
+                epochs_no_improve += 1
+
+            if epochs_no_improve >= patience:
+                logger.info(f"Early stopping triggered after {epoch+1} epochs")
+                break
+
+        return best_model, best_loss
+
+def extract_and_save_features(model, data_loader, save_path, scaler=None, original_columns=None):
+    """Extract and save encoded features from the model"""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)  # Add this line to move model to device
     model.eval()
     features = []
+    reconstructed = []
+
+    logger.info(f"Extracting features to {save_path}")
+
     with torch.no_grad():
         for batch in data_loader:
             batch = batch[0].to(device)
-            _, encoded = model(batch)
-            features.append(encoded.cpu())
-    return torch.cat(features, dim=0)
+            decoded, encoded = model(batch)
+            features.append(encoded.cpu().numpy())
+            reconstructed.append(decoded.cpu().numpy())
 
-class AutoencoderClassifier:
-    def __init__(self, autoencoder, threshold):
-        self.autoencoder = autoencoder
-        self.threshold = threshold
-    
-    def get_reconstruction_error(self, input_data):
-        self.autoencoder.eval()
-        with torch.no_grad():
-            decoded, _ = self.autoencoder(input_data)
-            # Flatten the tensors before calculating mean squared error
-            input_flat = input_data.view(input_data.size(0), -1)
-            decoded_flat = decoded.view(decoded.size(0), -1)
-            error = torch.mean((input_flat - decoded_flat) ** 2, dim=1)
-        return error
-    
-    def classify(self, input_data):
-        errors = self.get_reconstruction_error(input_data)
-        return errors > self.threshold
-    
-    def compute_metrics(self, true_labels, predictions):
-        tp = torch.sum((true_labels == 1) & (predictions == 1)).float()
-        fp = torch.sum((true_labels == 0) & (predictions == 1)).float()
-        fn = torch.sum((true_labels == 1) & (predictions == 0)).float()
-        tn = torch.sum((true_labels == 0) & (predictions == 0)).float()
-        
-        accuracy = (tp + tn) / len(true_labels)
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
-        
-        return accuracy.item(), precision.item(), recall.item()
+    features = np.concatenate(features, axis=0)
+    reconstructed = np.concatenate(reconstructed, axis=0)
 
-def plot_roc_curve(classifier, data_loader, true_labels):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    all_errors = []
-    
-    # Collect errors batch by batch
-    for batch in data_loader:
-        if isinstance(batch, (list, tuple)):
-            batch = batch[0]
-        batch = batch.to(device)
-        errors = classifier.get_reconstruction_error(batch)
-        all_errors.extend(errors.cpu().numpy())
-    
-    # Ensure predictions match true_labels length
-    all_errors = np.array(all_errors[:len(true_labels)])
-    
-    thresholds = np.linspace(min(all_errors), max(all_errors), 100)
-    tpr_list = []
-    fpr_list = []
-    
-    for threshold in thresholds:
-        predictions = (all_errors > threshold).astype(int)
-        tp = np.sum((true_labels == 1) & (predictions == 1))
-        fp = np.sum((true_labels == 0) & (predictions == 1))
-        fn = np.sum((true_labels == 1) & (predictions == 0))
-        tn = np.sum((true_labels == 0) & (predictions == 0))
-        
-        tpr = tp / (tp + fn) if (tp + fn) > 0 else 0
-        fpr = fp / (fp + tn) if (fp + tn) > 0 else 0
-        
-        tpr_list.append(tpr)
-        fpr_list.append(fpr)
-    
-    plt.figure(figsize=(8, 6))
-    plt.plot(fpr_list, tpr_list)
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('ROC Curve')
-    plt.grid(True)
-    plt.savefig('roc_curve.png', dpi=300, bbox_inches='tight')
-    plt.close()
-    plt.show()
+    # Denormalize the reconstructed data if scaler is provided
+    if scaler is not None:
+        reconstructed = scaler.inverse_transform(reconstructed)
 
-if __name__ == "__main__":
-    # Set random seed for reproducibility
+    # Convert to DataFrames and save as CSV
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    features_df = pd.DataFrame(features)
+    reconstructed_df = pd.DataFrame(reconstructed, columns=original_columns)
+
+    csv_save_path = save_path.replace('.npy', '.csv')
+    features_df.to_csv(csv_save_path, index=False)
+    reconstructed_df.to_csv(csv_save_path.replace('features.csv', 'reconstructed.csv'), index=False)
+
+    logger.success(f"Features and reconstructed data saved successfully to {csv_save_path}")
+    return features, reconstructed
+
+def load_physical_readings_data():
+    """Load and preprocess physical readings data"""
+    logger.info("Loading physical readings data")
+
+    try:
+        data = pd.read_csv('/Users/darth/Dev/stuProj/data/oversampling/train_4_task_02.csv', nrows=1000)
+        original_columns = data.columns
+        X = data.values.astype(np.float32)
+
+        # Initialize and fit the scaler
+        scaler = MinMaxScaler()
+        X_normalized = scaler.fit_transform(X)
+
+        X_train, X_test = train_test_split(X_normalized, test_size=0.2, random_state=42)
+
+        logger.success(f"Data loaded and normalized. Train shape: {X_train.shape}, Test shape: {X_test.shape}")
+        return X_train, X_test, scaler, original_columns
+
+    except Exception as e:
+        logger.error(f"Error loading data: {str(e)}")
+        raise
+
+def main():
+    logger.info("Starting autoencoder grid search pipeline")
+
+    # Set random seeds
     torch.manual_seed(42)
     np.random.seed(42)
-    
-    # Set device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
-    
-    # Generate synthetic data
-    print("Generating synthetic data...")
-    
-    # Network packets
-    num_packets = 1000
-    packet_length = 128
-    normal_packets = np.random.normal(0, 1, (num_packets, packet_length))
-    anomalous_packets = np.random.normal(2, 1, (num_packets // 10, packet_length))
-    
-    # Combine and create labels
-    all_packets = np.vstack([normal_packets, anomalous_packets])
-    labels = np.zeros(len(all_packets))
-    labels[num_packets:] = 1
-    
-    # Split data
-    X_train, X_test, y_train, y_test = train_test_split(
-        all_packets, labels, test_size=0.2, random_state=42
-    )
-    
-    # Convert to PyTorch datasets and move to device
-    train_data = torch.FloatTensor(X_train).to(device)
-    test_data = torch.FloatTensor(X_test).to(device)
-    train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
-    test_loader = DataLoader(test_data, batch_size=32)
-    
-    # Create and train model
-    print("\nCreating model...")
-    model = ConfigurableAutoencoder(
-        input_dim=packet_length,
-        compression_factor=4,
-        num_hidden_layers=3,
-        layer_type='dense',
-        activation='relu'
-    ).to(device)
-    
-    # Train the model
-    train_autoencoder(model, train_loader)
-    
-    # Extract features
-    print("\nExtracting features...")
-    train_features = extract_features(model, train_loader)
-    test_features = extract_features(model, test_loader)
-    print(f"Extracted features shape: {train_features.shape}")
-    
-    # Classification
-    print("\nPerforming classification...")
-    classifier = AutoencoderClassifier(model, threshold=0.5)
-    
-    # Convert test data and labels to appropriate format
-    test_data = torch.FloatTensor(X_test).to(device)
-    test_labels = torch.FloatTensor(y_test).to(device)
-    
-    # Make predictions
-    predictions = classifier.classify(test_data)
-    
-    # Calculate metrics
-    accuracy, precision, recall = classifier.compute_metrics(test_labels, predictions)
-    print(f"\nClassification Metrics:")
-    print(f"Accuracy: {accuracy:.4f}")
-    print(f"Precision: {precision:.4f}")
-    print(f"Recall: {recall:.4f}")
-    
-    # Plot ROC curve
-    print("\nGenerating ROC curve...")
-    plot_roc_curve(classifier, DataLoader(test_data, batch_size=32), y_test)
+
+    try:
+        # Load datasets
+        datasets = {
+            'physical_readings': load_physical_readings_data()
+        }
+
+        # Process each dataset
+        for dataset_name, (X_train, X_test, scaler, original_columns) in datasets.items():
+            logger.info(f"Processing dataset: {dataset_name}")
+
+            # Initialize trainer with grid search
+            trainer = ModelTrainer()
+
+            # Perform grid search
+            best_models = trainer.grid_search(X_train, X_test)
+
+            # Extract and save features for top 3 models
+            for rank, model_config in enumerate(best_models[:3], 1):
+                params = model_config['params']
+                model = ConfigurableAutoencoder(
+                    input_dim=X_train.shape[1],
+                    compression_factor=params['compression_factor'],
+                    num_hidden_layers=params['num_hidden_layers'],
+                    layer_type=params['layer_type'],
+                    activation=params['activation']
+                )
+
+                # Load best model state
+                model.load_state_dict(model_config['best_model'])
+                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                model = model.to(device)  # Add this line to move model to device
+
+                # Prepare data loaders
+                train_loader = DataLoader(torch.FloatTensor(X_train).unsqueeze(1), batch_size=params['batch_size'], shuffle=True)
+                test_loader = DataLoader(torch.FloatTensor(X_test).unsqueeze(1), batch_size=params['batch_size'])
+
+                # Save directory for this configuration
+                save_dir = f'features/{dataset_name}/rank_{rank}_{params["layer_type"]}_{params["activation"]}'
+
+                # Extract and save features
+                extract_and_save_features(model, train_loader, f'{save_dir}/train_features.csv', scaler, original_columns)
+                extract_and_save_features(model, test_loader, f'{save_dir}/test_features.csv', scaler, original_columns)
+
+        logger.success("Grid search pipeline completed successfully")
+
+    except Exception as e:
+        logger.error(f"Pipeline failed: {str(e)}")
+        raise
+
+if __name__ == "__main__":
+    main()

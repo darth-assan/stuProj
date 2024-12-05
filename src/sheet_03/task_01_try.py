@@ -82,6 +82,36 @@ CIP_SERVICE_MAP = {
     # in pychark, the the CIP service field uses 2 bytes of 4 i.e. 00cd -> cd,
 }
 
+def decode_cip_data(hex_data):
+    """Decode CIP data from hex string"""
+    try:
+        # Convert hex string to bytes
+        raw_payload = bytes.fromhex(hex_data)
+        
+        # Check minimum length
+        if len(raw_payload) < 4:
+            return None
+            
+        # First try to decode as REAL (float) data type
+        if len(raw_payload) >= 4:
+            # Check for REAL data type (0xCA)
+            data_type = struct.unpack('<H', raw_payload[0:2])[0]
+            if data_type == 0xCA:
+                value = struct.unpack('<f', raw_payload[2:6])[0]
+                return value
+                
+        # If that fails, try alternative format
+        # Some CIP messages have a different structure where the float starts at offset 0
+        try:
+            value = struct.unpack('<f', raw_payload[0:4])[0]
+            return value
+        except struct.error:
+            pass
+            
+        return None
+        
+    except (struct.error, ValueError) as e:
+        return None
 
 def add_entry_to_table(request_path, data, base_time):
     global data_table
@@ -111,7 +141,7 @@ def get_vendor_by_mac(mac_address):
 
 
 # Load the .cap file
-file_path = 'first100_00173.cap'
+file_path = '/Users/darth/Data/stuProj/SWaT/test/packet_00019_2017061410510.pcap'
 data_table = pd.DataFrame(columns=["Timestamp"])
 capture = pyshark.FileCapture(file_path)
 
@@ -164,11 +194,13 @@ for packet in capture:
             except: pass
             if data != None:
                 converted = data.replace(":", "")
-                print(f"Data: {converted}")
-                #try_decoding_data(converted)
-                # Add entry to the DataFrame
-                if request_path:
-                    add_entry_to_table(request_path, converted, timestring)
+                decoded_value = decode_cip_data(converted)
+                print(f"Data (Hex): {converted}")
+                print(f"Decoded Value: {decoded_value}")
+                
+                # Add entry to the DataFrame with decoded value
+                if request_path and decoded_value is not None:
+                    add_entry_to_table(request_path, decoded_value, timestring)
             else:
                 print("Data: Not found")
             

@@ -1,101 +1,113 @@
-from scapy.all import *
-from collections import defaultdict
+import scapy.all as scapy
 import pandas as pd
-from datetime import datetime
+import struct
+import os
+import glob
+import numpy as np
 
-class SWaTParser:
-    def __init__(self):
-        self.data_points = defaultdict(list)
-        self.timestamps = []
-        
-        # Define sensor and actuator columns based on SWaT structure
-        self.columns = [
-            'Time',
-            'SWAT_SUTD:RSLinx Enterprise:P1.HMI_FIT101.Pv',
-            'SWAT_SUTD:RSLinx Enterprise:P1.HMI_LIT101.Pv',
-            # Add all other columns as per example
-        ]
-        
-    def process_packet(self, packet):
-        if not (UDP in packet and packet[UDP].sport == 2222 and packet[UDP].dport == 2222):
-            return
-            
-        timestamp = packet.time
-        formatted_time = datetime.fromtimestamp(timestamp).strftime('%d/%m/%Y %I:%M:%S.%f %p')
-        
-        if Raw in packet:
-            raw_data = packet[Raw].load
-            
-            # Skip EtherNet/IP header
-            # Type ID: Sequenced Address Item (0x8002)
-            # Type ID: Connected Data Item (0x00b1)
-            data_offset = 4  # Adjust based on actual header size
-            
-            # Extract CIP I/O data
-            cip_data = raw_data[data_offset:]
-            
-            # Parse the data into sensor/actuator values
-            readings = self.parse_cip_values(cip_data)
-            
-            if readings:
-                self.timestamps.append(formatted_time)
-                for key, value in readings.items():
-                    self.data_points[key].append(value)
-    
-    def parse_cip_values(self, cip_data):
-        readings = {}
-        
-        # Example parsing logic - adjust based on actual data format
-        try:
-            # Parse hex data into corresponding sensor/actuator values
-            # Example: bcaf01000000ffffffff000000000000000000000000000000
-            
-            # Each sensor/actuator value might occupy specific positions
-            # in the data string with specific lengths
-            
-            readings['SWAT_SUTD:RSLinx Enterprise:P1.HMI_FIT101.Pv'] = float(self.extract_value(cip_data, 0, 4))
-            readings['SWAT_SUTD:RSLinx Enterprise:P1.HMI_LIT101.Pv'] = float(self.extract_value(cip_data, 4, 4))
-            # Add parsing for other sensors/actuators
-            
-        except Exception as e:
-            print(f"Error parsing CIP data: {e}")
-            return None
-            
-        return readings
-    
-    def extract_value(self, data, start, length):
-        # Extract and convert binary data to appropriate format
-        # This is a placeholder - implement actual conversion logic
-        value_bytes = data[start:start+length]
-        return int.from_bytes(value_bytes, byteorder='little')
-    
-    def create_dataframe(self):
-        df = pd.DataFrame(self.data_points, index=self.timestamps)
-        df.index.name = 'Time'
-        return df
-    
-    def save_to_csv(self, filename):
-        df = self.create_dataframe()
-        df.to_csv(filename)
+def parse_cip_data(raw_payload):
+    if len(raw_payload) < 12:
+        return None  # Not enough data to unpack
 
-def main():
-    parser = SWaTParser()
+    offset = 24  # Skip EtherNet/IP header
+    cmd, length, session, status = struct.unpack('<HHII', raw_payload[0:12])
     
-    # Process pcap files
-    pcap_files = ['your_pcap_file.pcap']  # Add your pcap files
+    # Parse CIP data
+    if cmd == 0x0070 or cmd == 0x006f:  # SendRRData or SendUnitData
+        item_count = struct.unpack('<H', raw_payload[30:32])[0]
+        offset = 32
+        
+        for _ in range(item_count):
+            type_id, item_len = struct.unpack('<HH', raw_payload[offset:offset+4])
+            offset += 4
+            
+            if type_id == 0x00b1:  # Connected Data Item
+                seq_cnt = struct.unpack('<H', raw_payload[offset:offset+2])[0]
+                offset += 2
+                
+                service = struct.unpack('<B', raw_payload[offset:offset+1])[0] & 0x7F
+                offset += 1
+                
+                if service == 0x4C:  # Read Tag Service
+                    data_type = struct.unpack('<H', raw_payload[offset:offset+2])[0]
+                    offset += 2
+                    
+                    if data_type == 0xCA:  # REAL
+                        value = struct.unpack('<f', raw_payload[offset:offset+4])[0]
+                        return value
     
-    for pcap_file in pcap_files:
-        packets = PcapReader(pcap_file)
-        for packet in packets:
-            parser.process_packet(packet)
-    
-    # Save results
-    parser.save_to_csv('parsed_swat_data.csv')
-    
-    # Calculate statistics
-    df = pd.read_csv('parsed_swat_data.csv')
-    statistics = df.describe()
-    statistics.to_csv('statistics.csv')
+    return None
 
-if __name__ == "__main__":
-    main()
+def parse_pcap(file_path):
+    readings = []
+    packet_count = 0
+    valid_readings = 0
+    
+    for packet in scapy.PcapReader(file_path):
+        packet_count += 1
+        if scapy.TCP in packet and scapy.Raw in packet:
+            src_port = packet[scapy.TCP].sport
+            dst_port = packet[scapy.TCP].dport
+            
+            if src_port == 44818 or dst_port == 44818:  # EtherNet/IP port
+                raw_payload = bytes(packet[scapy.Raw].load)
+                value = parse_cip_data(raw_payload)
+                
+                if value is not None:
+                    valid_readings += 1
+                    readings.append({
+                        'timestamp': packet.time,
+                        'value': value
+                    })
+    
+    print(f"Processed {packet_count} packets, found {valid_readings} valid readings")
+    return pd.DataFrame(readings)
+
+def process_pcap_files(directory):
+    all_readings = []
+    
+    for file in glob.glob(os.path.join(directory, '*.pcap')):
+        print(f"Processing {file}...")
+        df = parse_pcap(file)
+        if not df.empty:  # Only append non-empty DataFrames
+            all_readings.append(df)
+        else:
+            print(f"No valid readings found in {file}")
+    
+    if not all_readings:  # Check if we have any readings at all
+        print("No valid readings found in any files")
+        return pd.DataFrame(columns=['timestamp', 'value'])  # Return empty DataFrame with correct columns
+    
+    return pd.concat(all_readings).sort_values('timestamp').reset_index(drop=True)
+
+def compute_statistics(df):
+    return {
+        'mean': df['value'].mean(),
+        'median': df['value'].median(),
+        'std': df['value'].std()
+    }
+
+# Main execution
+pcap_directory = '/Users/darth/Data/stuProj/SWaT/test'
+parsed_readings = process_pcap_files(pcap_directory)
+
+# Save parsed readings to CSV
+parsed_readings.to_csv('parsed_readings.csv', index=False)
+
+# Compute statistics
+parsed_stats = compute_statistics(parsed_readings)
+
+print("Statistics for parsed readings:")
+print(parsed_stats)
+
+# Compare with provided dataset (assuming it's in a CSV file)
+provided_readings = pd.read_csv('provided_readings.csv')
+provided_stats = compute_statistics(provided_readings)
+
+print("\nStatistics for provided readings:")
+print(provided_stats)
+
+print("\nComparison:")
+for stat in ['mean', 'median', 'std']:
+    diff = abs(parsed_stats[stat] - provided_stats[stat])
+    print(f"{stat.capitalize()} difference: {diff}")
