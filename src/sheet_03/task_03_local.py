@@ -1,5 +1,4 @@
 debugmode = False
-if debugmode: print("\n"*50,"Processing task_03_local.py")
 import pandas as pd
 #import matplotlib.pyplot as plt
 import numpy as np
@@ -75,6 +74,7 @@ dir = "..\\..\\data\\original\\hai-21.03"
 dftest_2103, dftrain_2103 = prepare_dataset(dir)
 betas = [0.998, 0.895, 0.879]
 for beta in betas:
+    print(f"\n---------- Beta = {beta} ----------")
     temp_pca, temp_evr = pca_with_single_beta(dftest_2103, beta)
     np.savetxt(f'hai_21.03_test_{beta}.csv', temp_pca, delimiter=",")
     temp_pca, temp_evr = pca_with_single_beta(dftrain_2103, beta)
