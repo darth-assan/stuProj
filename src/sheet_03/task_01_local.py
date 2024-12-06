@@ -19,6 +19,7 @@ file_path = './first10k_00173.cap'
 # OUI Vendor Mapping (Example: Rockwell Automation)
 # https://mac.lc/company/rockwell-automation
 # Organizationally Unique Identifier (OUI), which is the first 3 bytes (24 bits) of the MAC address
+
 OUI_MAP = {
     '00:00:BC': 'Rockwell Automation',  # OUI for Rockwell Automation
     '00:1D:9C': 'Rockwell Automation',  # OUI for Rockwell Automation
@@ -71,6 +72,17 @@ CIP_SERVICE_MAP = {
     # in pychark, the the CIP service field uses 2 bytes of 4 i.e. 00cd -> cd,
 }
 
+DATA_SIZE_DECODING_MAP = {
+    # device name : [length of raw_data, position of value]
+    "HMI_AIT402" : [80,4], # or 36
+    "HMI_AIT504" : [80,4], # or 36
+    "HMI_AIT503" : [80,4], # or 36
+    "HMI_AIT502" : [80,4], # or 36
+    "HMI_AIT501" : [80,4],  # or 36
+    "HMI_LIT101" : [80,4], # or 36
+    "HMI_LIT301" : [80,4], # or 36
+    "HMI_LIT401" : [80,4] # or 36
+}
 
 # Raw data in hex in IEEE 754
 def decoding_data(raw_data, request_path):
@@ -78,34 +90,29 @@ def decoding_data(raw_data, request_path):
     if print_decoding_details: print("Raw_data:", raw_data)
     if print_decoding_details: print("Raw_data length:", len(raw_data))
     decoded = "Not decoded"
-    """
+    
     if request_path != None:
-        if request_path == "HMI_AIT504" and len(raw_data) == 80:  # '!f' = big-endian single-precision float # Decode as IEEE 754 float (big-endian)
-            hex_segment = raw_data[38:46]
-            bytes_data = bytes.fromhex(hex_segment)    
-            decoded = struct.unpack('!f', bytes_data)[0]
-        elif request_path == "HMI_AIT503" and len(raw_data) == 80:
+        ####### Manual Analysis #########    
+        """
+        if request_path == "HMI_LIT401" and len(raw_data) != 4:
+            print("Raw data length:", len(raw_data))
             bytes_data = bytes.fromhex(raw_data)
-            new_bytes_data = bytes_data[26:30]
-            decoded = struct.unpack('<f', new_bytes_data)[0]
-        elif request_path == "HMI_AIT502" and len(raw_data) == 80:
+            for i in range(0,len(bytes_data)+1-4):
+                new_bytes_data = bytes_data[i:i+4]
+                decoded = struct.unpack('<f', new_bytes_data)[0]
+                print(i, "=", decoded)
+            input("wait here")
+        """
+        ################
+        current = DATA_SIZE_DECODING_MAP.get(request_path, 'Unknown decoding')
+        if len(raw_data) == 4:
+            decoded = "4 bit output"
+        if len(raw_data) == current[0]:
             bytes_data = bytes.fromhex(raw_data)
-            new_bytes_data = bytes_data[4:8]
-            #hypo_bytes_data = bytes_data[36:40]
+            new_bytes_data = bytes_data[current[1]:current[1]+4]
             decoded = struct.unpack('<f', new_bytes_data)[0]
-        elif request_path == "HMI_AIT501" and len(raw_data) == 80:
-            bytes_data = bytes.fromhex(raw_data)
-            new_bytes_data = bytes_data[24:28]
-            decoded = struct.unpack('<f', new_bytes_data)[0]
-            #print("1:", decoded)
-        elif request_path == "HMI_FIT201" and len(raw_data) == 96:
-            decoded = raw_data
-            print(raw_data, len(raw_data))
-            input("raw data")
     else:
-        decoded = raw_data
-    """
-    decoded = raw_data
+        decoded = "No device name"
     if print_decoding_details: print("Decode result:", decoded)
     return decoded
 
@@ -175,7 +182,7 @@ for packet in capture:
                 data = decoding_data(converted, request_path)
                 if request_path:
                     timestring = (packet.sniff_time).strftime("%Y%m%d%H%M%S") + f"{(packet.sniff_time).microsecond // 1000:03d}"
-                    add_entry_to_table(request_path, converted, timestring)
+                    add_entry_to_table(request_path, data, timestring)
             
             print(f"Packet Number: {packet.number}")
 
@@ -195,6 +202,9 @@ for packet in capture:
 capture.close()
 print(data_table)
 data_table.to_csv('device_data_over_time.csv', index=False)
+sorted_columns = sorted([col for col in data_table.columns if col != "Timestamp"]) + ["Timestamp"]
+data_table = data_table[sorted_columns]
+print(data_table)
 
 # Convert all columns to numeric (floats) where possible, replacing non-convertible values with NaN
 numeric_df = data_table.apply(pd.to_numeric, errors='coerce')
